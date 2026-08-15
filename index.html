@@ -307,9 +307,20 @@ function hostSetup(code) {
 function guestSetup(code, attempt, orHost) {
   attempt = attempt || 1;
   G.peer = new Peer({ debug: 1 });
+  let joined = false;
+  const joinTimeout = setTimeout(() => {
+    // no 'peer-unavailable' error fired (slow signaling) — if orHost, become host
+    if (!joined && orHost) {
+      setStatus("Кімнати немає — створюємо " + code + "...");
+      try { G.peer.destroy(); } catch (e) {}
+      hostSetup(code);
+    }
+  }, 7000);
   G.peer.on("open", () => {
     const conn = G.peer.connect("s3d" + code, { reliable: false });
     conn.on("open", () => {
+      joined = true;
+      clearTimeout(joinTimeout);
       G.conn = conn;
       conn.send({ t: "join", name: G.myName });
     });
@@ -319,12 +330,15 @@ function guestSetup(code, attempt, orHost) {
   });
   G.peer.on("error", (e) => {
     if (e.type === "peer-unavailable") {
-      if (orHost && attempt < 4) {
-        setStatus("Кімнату ще не створено — пробуємо (" + attempt + "/3)");
-        setTimeout(() => guestSetup(code, attempt + 1, true), 1500);
+      clearTimeout(joinTimeout);
+      if (orHost && attempt < 3) {
+        setStatus("Шукаємо кімнату... (" + attempt + "/3)");
+        try { G.peer.destroy(); } catch (err) {}
+        setTimeout(() => guestSetup(code, attempt + 1, true), 1200);
       } else if (orHost) {
         setStatus("Створюємо кімнату " + code + "...");
-        setTimeout(() => hostSetup(code), 500);
+        try { G.peer.destroy(); } catch (err) {}
+        setTimeout(() => hostSetup(code), 300);
       } else {
         setStatus("Не вдалося знайти кімнату (" + e.type + ")");
         $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = false;
