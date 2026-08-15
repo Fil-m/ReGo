@@ -35,6 +35,7 @@
   #frags { position:absolute; top:14px; right:16px; font-size:26px; font-weight:700; color:#ffd166; text-shadow:0 2px 8px rgba(0,0,0,0.6); }
   #frags small { font-size:12px; color:#8a93a6; font-weight:400; margin-right:6px; }
   #killfeed { position:absolute; top:52px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:4px; align-items:center; }
+  #rtt { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); font-size:12px; color:#8a93a6; background:rgba(10,14,22,0.6); padding:3px 10px; border-radius:12px; pointer-events:none; }
   .kf { background:rgba(10,14,22,0.7); padding:4px 12px; border-radius:6px; font-size:13px; animation:kfout 4s forwards; }
   @keyframes kfout { 0%,70% {opacity:1;} 100% {opacity:0;} }
   #dead { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:10px; background:rgba(120,0,0,0.25); }
@@ -84,6 +85,7 @@
   <div id="hpWrap"><div id="hpLabel">HP</div><div id="hpBar"><div id="hpFill"></div></div></div>
   <div id="frags"><small>ФРАГИ</small><span id="fragsVal">0</span></div>
   <div id="killfeed"></div>
+  <div id="rtt">— мс</div>
   <div id="dead"><div class="big">ТИ ЗАГИНУВ</div><div class="cnt" id="deadCnt">відродження...</div></div>
 </div>
 <div id="tc">
@@ -124,6 +126,7 @@ const G = {
   input: { f: 0, s: 0, jump: false, fire: false }, lastFireSent: false,
   lastStateAt: 0, stateBuf: null, stateAcc: 0,
   inAcc: 0, lastIn: 0,
+  rtt: 0, rttLastPingAt: 0, rttTimer: 0,
   scene: null, camera: null, renderer: null, tracers: [], clock: null,
   running: false, deadUntil: 0, kf: [],
   touchLook: null, joy: null, joyId: null,
@@ -351,6 +354,7 @@ function guestSetup(code, attempt, orHost) {
 }
 
 function handleHostMsg(conn, d) {
+  if (d.t === "ping") { conn.send({ t: "pong", ts: d.ts }); return; }
   if (d.t === "join") {
     const p = addPlayer(conn.peer, d.name, false);
     p.connId = conn.peer;
@@ -387,6 +391,10 @@ function handleHostMsg(conn, d) {
 }
 
 function handleGuestMsg(d) {
+  if (d.t === "pong") {
+    G.rtt = performance.now() - d.ts;
+    return;
+  }
   if (d.t === "welcome") {
     G.myId = d.id;
     G.lastStateAt = performance.now();
@@ -524,7 +532,7 @@ function applyState(d) {
         if (dist > 6 || p.y > sp.y + 2) {
           p.x = sp.x; p.y = sp.y; p.z = sp.z; p.vx = p.vy = p.vz = 0;
         } else if (dist > 0.01) {
-          const k = Math.min(1, 0.35 + dist * 0.06);
+          const k = Math.min(1, 0.18 + dist * 0.03);
           p.x += dx * k; p.z += dz * k;
         }
         p.hp = sp.hp; p.alive = sp.alive; p.frags = sp.frags;
@@ -732,6 +740,25 @@ function loop() {
           G.conn.send({ t: "i", id: G.myId, yaw: me.yaw, pitch: me.pitch, i: { f: G.input.f, s: G.input.s, j: G.input.jump, fire: G.input.fire } });
         } catch (e) {}
       }
+    }
+    // guest ping for RTT display
+    if (now - G.rttLastPingAt > 2000) {
+      G.rttLastPingAt = now;
+      try { G.conn.send({ t: "ping", ts: now }); } catch (e) {}
+    }
+    if (now - G.rttTimer > 500) {
+      G.rttTimer = now;
+      const el = $("rtt");
+      if (el) el.textContent = (G.rtt > 0 ? Math.round(G.rtt) : "—") + " мс";
+    }
+  }
+
+  // host: show RTT (first conn) too
+  if (G.isHost) {
+    if (now - G.rttTimer > 500) {
+      G.rttTimer = now;
+      const el = $("rtt");
+      if (el) el.textContent = G.conns.size ? "хост" : "—";
     }
   }
 
