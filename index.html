@@ -526,6 +526,8 @@ function applyState(d) {
     if (p.isMe) {
       const own = sp.id === G.myId;
       if (own) {
+        // remember last authority position (for prediction clamp on guest)
+        p.authX = sp.x; p.authZ = sp.z;
         // smooth reconciliation: pull toward authority, hard-snap only on big jumps (respawn/teleport)
         const dx = sp.x - p.x, dz = sp.z - p.z;
         const dist = Math.hypot(dx, dz);
@@ -730,7 +732,13 @@ function loop() {
     const me = G.players.get(G.myId);
     const stateFresh = performance.now() - G.lastStateAt < 600;
     if (me && me.alive && stateFresh) {
-      movePlayer(me, { f: G.input.f, s: G.input.s, jump: G.input.jump }, dt);
+      // prediction clamp: slow down as we drift from authority (kills "leaving your body")
+      let pk = 1;
+      if (me.authX !== undefined) {
+        const drift = Math.hypot(me.x - me.authX, me.z - me.authZ);
+        pk = Math.max(0, 1 - drift / 3);
+      }
+      movePlayer(me, { f: G.input.f * pk, s: G.input.s * pk, jump: G.input.jump }, dt);
     }
     G.inAcc += dt;
     if (G.inAcc >= 1 / INPUT_HZ) {
