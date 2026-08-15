@@ -63,7 +63,11 @@
   <div class="sub">3D-шутер, кілька гравців по WebRTC.<br>Хост = гравець, без сервера.</div>
   <input class="inp" id="nameInp" maxlength="14" placeholder="Твій нік" autocomplete="off">
   <div class="row">
-    <button class="btn green" id="createBtn">Створити гру</button>
+    <button class="btn green" id="quickBtn">⚡ Грати разом</button>
+  </div>
+  <div class="sub" style="margin-top:-4px">Спільна кімната: код <b id="quickCode">REGO1</b><br>перший гравець стає хостом, решта заходять самі</div>
+  <div class="row">
+    <button class="btn" id="createBtn">Створити свою</button>
   </div>
   <div class="row">
     <input class="inp" id="codeInp" maxlength="5" placeholder="Код кімнати" autocomplete="off" style="text-transform:uppercase">
@@ -270,9 +274,12 @@ function hostSetup(code) {
   G.isHost = true;
   G.peer = new Peer("s3d" + code, { debug: 1 });
   G.peer.on("open", (id) => {
-    setStatus("Кімната " + code + " — чекаємо гравців");
+    if (!location.hash) location.hash = "room=" + code;
+    setStatus("Кімната " + code + " — чекаємо гравців. Код: " + code);
     const p = addPlayer("host", G.myName, true);
     G.myId = p.id;
+    $("menu").classList.add("hidden");
+    $("hud").style.display = "block";
     startGame();
   });
   G.peer.on("connection", (conn) => {
@@ -289,12 +296,15 @@ function hostSetup(code) {
     });
   });
   G.peer.on("error", (e) => {
-    if (e.type === "unavailable-id") setStatus("Кімната з таким кодом уже існує");
-    else setStatus("Помилка: " + e.type);
+    if (e.type === "unavailable-id") {
+      setStatus("Кімната вже існує — приєднуємось");
+      G.isHost = false;
+      setTimeout(() => guestSetup(code, 1, true), 800);
+    } else setStatus("Помилка: " + e.type);
   });
 }
 
-function guestSetup(code, attempt) {
+function guestSetup(code, attempt, orHost) {
   attempt = attempt || 1;
   G.peer = new Peer({ debug: 1 });
   G.peer.on("open", () => {
@@ -308,12 +318,20 @@ function guestSetup(code, attempt) {
     conn.on("error", () => { setStatus("Помилка з\'єднання"); });
   });
   G.peer.on("error", (e) => {
-    if (e.type === "peer-unavailable" && attempt < 5) {
-      setStatus("З\'єднуємось... спроба " + attempt);
-      setTimeout(() => guestSetup(code, attempt + 1), 1500);
+    if (e.type === "peer-unavailable") {
+      if (orHost && attempt < 4) {
+        setStatus("Кімнату ще не створено — пробуємо (" + attempt + "/3)");
+        setTimeout(() => guestSetup(code, attempt + 1, true), 1500);
+      } else if (orHost) {
+        setStatus("Створюємо кімнату " + code + "...");
+        setTimeout(() => hostSetup(code), 500);
+      } else {
+        setStatus("Не вдалося знайти кімнату (" + e.type + ")");
+        $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = false;
+      }
     } else {
-      setStatus("Не вдалося знайти кімнату (" + e.type + ")");
-      $("createBtn").disabled = $("joinBtn").disabled = false;
+      setStatus("Помилка: " + e.type);
+      $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = false;
     }
   });
 }
@@ -751,29 +769,50 @@ function genCode() {
   return s;
 }
 
+$("quickBtn").addEventListener("click", () => {
+  G.myName = ($("nameInp").value || "Гравець").trim().slice(0, 14);
+  const code = $("quickCode").textContent.trim();
+  $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = true;
+  setStatus("Шукаємо кімнату " + code + "...");
+  guestSetup(code, 1, true);
+});
+
 $("createBtn").addEventListener("click", () => {
   const name = ($("nameInp").value || "Гравець").trim().slice(0, 14);
   G.myName = name;
   const code = genCode();
-  $("createBtn").disabled = $("joinBtn").disabled = true;
+  $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = true;
   hostSetup(code);
   const url = location.origin + location.pathname + "#room=" + code;
   $("linkBox").style.display = "block";
   $("copyBtn").style.display = "block";
-  $("linkBox").textContent = "Лінк для друзів:\n" + url;
+  $("linkBox").textContent = "Код кімнати: " + code + "\nЛінк для друзів:\n" + url;
 });
 
 $("copyBtn").addEventListener("click", () => {
   const code = (location.hash.match(/room=([A-Z0-9]{5})/) || [])[1];
   const url = location.origin + location.pathname + "#room=" + code;
-  navigator.clipboard.writeText(url).then(() => { $("copyBtn").textContent = "✓ Скопійовано"; setTimeout(() => { $("copyBtn").textContent = "Скопіювати лінк"; }, 1500); });
+  const done = () => { $("copyBtn").textContent = "✓ Скопійовано"; setTimeout(() => { $("copyBtn").textContent = "Скопіювати лінк"; }, 1500); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(done).catch(() => legacyCopy(url, done));
+  } else legacyCopy(url, done);
 });
+function legacyCopy(text, done) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); done(); } catch (e) { $("status").textContent = "Скопіюй вручну: " + text; }
+  document.body.removeChild(ta);
+}
 
 function joinFromCode(code) {
   const name = ($("nameInp").value || "Гравець").trim().slice(0, 14);
   G.myName = name;
-  $("createBtn").disabled = $("joinBtn").disabled = true;
-  guestSetup(code);
+  $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = true;
+  guestSetup(code, 1, true); // orHost: if room missing, become host
 }
 
 $("joinBtn").addEventListener("click", () => {
