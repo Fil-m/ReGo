@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>3D Shooter Proto</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#0b0e14; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:#e8ecf4; touch-action:none; user-select:none; -webkit-user-select:none; }
+  canvas { display:block; position:fixed; inset:0; }
+  #menu { position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; background:radial-gradient(circle at 50% 30%, #182030 0%, #0b0e14 70%); padding:20px; }
+  #menu.hidden { display:none; }
+  #menu h1 { font-size:34px; letter-spacing:1px; margin-bottom:6px; }
+  #menu .sub { color:#8a93a6; font-size:14px; margin-bottom:10px; text-align:center; }
+  .inp { width:min(320px, 90vw); padding:12px 16px; border-radius:10px; border:1px solid #2a3448; background:#141b29; color:#e8ecf4; font-size:16px; outline:none; text-align:center; }
+  .inp:focus { border-color:#4f8cff; }
+  .btn { width:min(320px, 90vw); padding:14px; border-radius:10px; border:none; background:#2f6bff; color:#fff; font-size:17px; font-weight:600; cursor:pointer; }
+  .btn:active { transform:scale(0.98); }
+  .btn.gray { background:#232c40; }
+  .btn.green { background:#1faa4f; }
+  .btn:disabled { opacity:0.5; }
+  #linkBox { width:min(320px, 90vw); background:#141b29; border:1px solid #2a3448; border-radius:10px; padding:10px; font-size:12px; word-break:break-all; color:#9fb2d8; text-align:center; }
+  .row { display:flex; gap:8px; width:min(320px,90vw); }
+  .row .btn { flex:1; width:auto; }
+  #status { position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:20; background:rgba(10,14,22,0.75); padding:5px 12px; border-radius:20px; font-size:12px; color:#9fb2d8; pointer-events:none; }
+  #hud { position:fixed; inset:0; z-index:10; pointer-events:none; display:none; }
+  #cross { position:absolute; top:50%; left:50%; width:14px; height:14px; transform:translate(-50%,-50%); }
+  #cross::before, #cross::after { content:""; position:absolute; background:#e8ecf4; }
+  #cross::before { left:6px; top:0; width:2px; height:14px; }
+  #cross::after { top:6px; left:0; height:2px; width:14px; }
+  #hpWrap { position:absolute; top:16px; left:16px; width:min(220px, 40vw); }
+  #hpLabel { font-size:12px; color:#8a93a6; margin-bottom:4px; }
+  #hpBar { height:12px; border-radius:6px; background:#232c40; overflow:hidden; }
+  #hpFill { height:100%; width:100%; background:#2fd86b; border-radius:6px; transition:width 0.2s; }
+  #frags { position:absolute; top:14px; right:16px; font-size:26px; font-weight:700; color:#ffd166; text-shadow:0 2px 8px rgba(0,0,0,0.6); }
+  #frags small { font-size:12px; color:#8a93a6; font-weight:400; margin-right:6px; }
+  #killfeed { position:absolute; top:52px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:4px; align-items:center; }
+  .kf { background:rgba(10,14,22,0.7); padding:4px 12px; border-radius:6px; font-size:13px; animation:kfout 4s forwards; }
+  @keyframes kfout { 0%,70% {opacity:1;} 100% {opacity:0;} }
+  #dead { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:10px; background:rgba(120,0,0,0.25); }
+  #dead.show { display:flex; }
+  #dead .big { font-size:30px; font-weight:700; }
+  #dead .cnt { font-size:20px; color:#ffd166; }
+  #hitmark { position:absolute; top:50%; left:50%; width:22px; height:22px; transform:translate(-50%,-50%) rotate(45deg); border:2px solid #ff5c5c; border-radius:3px; opacity:0; }
+  #hitmark.show { animation:hm 0.18s ease-out; }
+  @keyframes hm { 0% {opacity:1; transform:translate(-50%,-50%) rotate(45deg) scale(1.2);} 100% {opacity:0; transform:translate(-50%,-50%) rotate(45deg) scale(0.8);} }
+  /* touch controls */
+  #tc { position:fixed; inset:0; z-index:15; display:none; }
+  body.touch #tc { display:block; }
+  #joyBase { position:absolute; left:30px; bottom:34px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.25); }
+  #joyKnob { position:absolute; left:50%; top:50%; width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,0.35); transform:translate(-50%,-50%); }
+  #fireBtn { position:absolute; right:28px; bottom:36px; width:92px; height:92px; border-radius:50%; background:rgba(255,80,80,0.28); border:3px solid rgba(255,120,120,0.6); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:rgba(255,255,255,0.85); }
+  #fireBtn.active { background:rgba(255,80,80,0.55); }
+  #jumpBtn { position:absolute; right:140px; bottom:90px; width:58px; height:58px; border-radius:50%; background:rgba(120,180,255,0.25); border:2px solid rgba(150,200,255,0.55); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:rgba(255,255,255,0.85); }
+  #hintTouch { position:absolute; top:14px; left:50%; transform:translateX(-50%); font-size:12px; color:#8a93a6; background:rgba(10,14,22,0.6); padding:4px 12px; border-radius:16px; }
+  @media (orientation:portrait) { #hintRotate { display:flex; } }
+  #hintRotate { position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; text-align:center; background:#0b0e14; font-size:18px; padding:30px; }
+</style>
+</head>
+<body>
+<div id="menu">
+  <h1>⚔ PROTO ARENA</h1>
+  <div class="sub">3D-шутер, кілька гравців по WebRTC.<br>Хост = гравець, без сервера.</div>
+  <input class="inp" id="nameInp" maxlength="14" placeholder="Твій нік" autocomplete="off">
+  <div class="row">
+    <button class="btn green" id="createBtn">Створити гру</button>
+  </div>
+  <div class="row">
+    <input class="inp" id="codeInp" maxlength="5" placeholder="Код кімнати" autocomplete="off" style="text-transform:uppercase">
+    <button class="btn" id="joinBtn">Зайти</button>
+  </div>
+  <div id="linkBox" style="display:none"></div>
+  <button class="btn gray" id="copyBtn" style="display:none">Скопіювати лінк</button>
+</div>
+<div id="hintRotate">Поверни телефон горизонтально 🔄<br><small>гра працює в landscape</small></div>
+<div id="status"></div>
+<div id="hud">
+  <div id="cross"></div>
+  <div id="hitmark"></div>
+  <div id="hpWrap"><div id="hpLabel">HP</div><div id="hpBar"><div id="hpFill"></div></div></div>
+  <div id="frags"><small>ФРАГИ</small><span id="fragsVal">0</span></div>
+  <div id="killfeed"></div>
+  <div id="dead"><div class="big">ТИ ЗАГИНУВ</div><div class="cnt" id="deadCnt">відродження...</div></div>
+</div>
+<div id="tc">
+  <div id="joyBase"><div id="joyKnob"></div></div>
+  <div id="fireBtn">ВОГОНЬ</div>
+  <div id="jumpBtn">СТРИБОК</div>
+  <div id="hintTouch">Ліва половина — рух, права — огляд</div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.149.0/three.min.js"></script>
+<script>
+"use strict";
+/* ============ helpers ============ */
+const $ = (id) => document.getElementById(id);
+const rnd = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+/* ============ config ============ */
+const GRAVITY = 22, JUMP_V = 8.5, SPEED = 8, ACCEL = 45, FRICTION = 9, RADIUS = 0.5;
+const EYE = 1.6, PLAYER_H = 1.9;
+const ARENA = 27;
+const MAX_HP = 100, DMG = 25, FIRE_CD = 0.28, RESPAWN = 3;
+const STATE_HZ = 20, INPUT_HZ = 25;
+
+/* arena: floor + crates (AABB) + bounds */
+const CRATES = [
+  { x: -8, z: -8, w: 4, h: 4 }, { x: 8, z: 8, w: 4, h: 4 },
+  { x: 8, z: -12, w: 4, h: 4 }, { x: -12, z: 10, w: 4, h: 4 },
+  { x: 0, z: 0, w: 3, h: 3 },
+];
+
+/* ============ app state ============ */
+const G = {
+  peer: null, conns: new Map(), conn: null, isHost: false, myId: null,
+  players: new Map(), // id -> {id,name,x,y,z,vx,vy,vz,yaw,pitch,hp,alive,frags,respawnAt,lastFire,mesh,label}
+  input: { f: 0, s: 0, jump: false, fire: false }, lastFireSent: false,
+  lastStateAt: 0, stateBuf: null, stateAcc: 0,
+  inAcc: 0, lastIn: 0,
+  scene: null, camera: null, renderer: null, tracers: [], clock: null,
+  running: false, deadUntil: 0, kf: [],
+  touchLook: null, joy: null, joyId: null,
+};
+
+/* ============ three init ============ */
+function init3d() {
+  const cvs = document.createElement("canvas");
+  document.body.appendChild(cvs);
+  G.renderer = new THREE.WebGLRenderer({ canvas: cvs, antialias: true });
+  G.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  G.renderer.setSize(window.innerWidth, window.innerHeight);
+  G.scene = new THREE.Scene();
+  G.scene.background = new THREE.Color(0x0d1420);
+  G.scene.fog = new THREE.Fog(0x0d1420, 60, 140);
+  G.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 300);
+  G.clock = new THREE.Clock();
+
+  // lights
+  G.scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x1a2233, 0.9));
+  const dl = new THREE.DirectionalLight(0xffffff, 0.8);
+  dl.position.set(30, 60, 20);
+  G.scene.add(dl);
+
+  // floor
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(ARENA * 2, ARENA * 2),
+    new THREE.MeshStandardMaterial({ color: 0x1c2536, roughness: 0.9 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  G.scene.add(floor);
+  const grid = new THREE.GridHelper(ARENA * 2, 18, 0x2c3a55, 0x232e45);
+  grid.position.y = 0.01;
+  G.scene.add(grid);
+
+  // walls
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0x2f6bff, roughness: 0.6 });
+  const edge = (sx, sz, ex, ez, h) => {
+    const dx = ex - sx, dz = ez - sz;
+    const len = Math.sqrt(dx * dx + dz * dz);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(len, h, 1), wallMat);
+    m.position.set((sx + ex) / 2, h / 2, (sz + ez) / 2);
+    m.rotation.y = Math.atan2(dx, dz);
+    G.scene.add(m);
+  };
+  edge(-ARENA, -ARENA, ARENA, -ARENA, 3); edge(-ARENA, ARENA, ARENA, ARENA, 3);
+  edge(-ARENA, -ARENA, -ARENA, ARENA, 3); edge(ARENA, -ARENA, ARENA, ARENA, 3);
+
+  // crates
+  const crateMat = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.8 });
+  for (const c of CRATES) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(c.w, 2, c.h), crateMat);
+    m.position.set(c.x, 1, c.z);
+    G.scene.add(m);
+  }
+
+  // gun (attached to camera)
+  const gun = new THREE.Group();
+  const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.55), new THREE.MeshStandardMaterial({ color: 0x222a3a }));
+  barrel.position.set(0, -0.12, -0.35);
+  gun.add(barrel);
+  const tip = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.12), new THREE.MeshStandardMaterial({ color: 0x4f8cff }));
+  tip.position.set(0, -0.12, -0.62);
+  gun.add(tip);
+  G.camera.add(gun);
+  G.scene.add(G.camera);
+
+  window.addEventListener("resize", () => {
+    G.camera.aspect = window.innerWidth / window.innerHeight;
+    G.camera.updateProjectionMatrix();
+    G.renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+}
+
+/* ============ physics (shared host/guest) ============ */
+function collideCircle(x, z, r) {
+  // bounds
+  let nx = clamp(x, -ARENA + r, ARENA - r), nz = clamp(z, -ARENA + r, ARENA - r);
+  // crates
+  for (const c of CRATES) {
+    const cx0 = c.x - c.w / 2 - r, cx1 = c.x + c.w / 2 + r;
+    const cz0 = c.z - c.h / 2 - r, cz1 = c.z + c.h / 2 + r;
+    if (nx > cx0 && nx < cx1 && nz > cz0 && nz < cz1) {
+      const dl = nx - cx0, dr = cx1 - nx, dt = nz - cz0, db = cz1 - nz;
+      const m = Math.min(dl, dr, dt, db);
+      if (m === dl) nx = cx0; else if (m === dr) nx = cx1;
+      else if (m === dt) nz = cz0; else nz = cz1;
+    }
+  }
+  return { x: nx, z: nz };
+}
+
+function movePlayer(p, input, dt) {
+  if (!p.alive) return;
+  const yaw = p.yaw;
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+  const rx = Math.cos(yaw), rz = -Math.sin(yaw);
+  p.vx += (fx * input.f + rx * input.s) * ACCEL * dt;
+  p.vz += (fz * input.f + rz * input.s) * ACCEL * dt;
+  const fr = 1 - Math.min(1, FRICTION * dt);
+  p.vx *= fr; p.vz *= fr;
+  p.x += p.vx * dt; p.z += p.vz * dt;
+  const c = collideCircle(p.x, p.z, RADIUS);
+  p.x = c.x; p.z = c.z;
+  if (Math.abs(p.vx) < 0.05) p.vx = 0;
+  if (Math.abs(p.vz) < 0.05) p.vz = 0;
+  // jump
+  p.vy -= GRAVITY * dt;
+  p.y += p.vy * dt;
+  if (p.y <= 0) { p.y = 0; p.vy = 0; if (input.jump) p.vy = JUMP_V; }
+}
+
+/* ============ raycast ============ */
+function rayAABB(ox, oy, oz, dx, dy, dz, x0, y0, z0, x1, y1, z1) {
+  let tmin = 0, tmax = 1e9;
+  const axes = [[dx, ox, x0, x1], [dy, oy, y0, y1], [dz, oz, z0, z1]];
+  for (const [d, o, a, b] of axes) {
+    if (Math.abs(d) < 1e-9) { if (o < a || o > b) return null; continue; }
+    let t1 = (a - o) / d, t2 = (b - o) / d;
+    if (t1 > t2) { const tt = t1; t1 = t2; t2 = tt; }
+    tmin = Math.max(tmin, t1); tmax = Math.min(tmax, t2);
+    if (tmin > tmax) return null;
+  }
+  return tmin;
+}
+
+function castShot(shooter) {
+  const dir = new THREE.Vector3(0, 0, -1)
+    .applyEuler(new THREE.Euler(shooter.pitch, shooter.yaw, 0, "YXZ"));
+  const ox = shooter.x, oy = shooter.y + EYE, oz = shooter.z;
+  let bestT = 1000, hitId = null;
+  for (const p of G.players.values()) {
+    if (p.id === shooter.id || !p.alive) continue;
+    const t = rayAABB(ox, oy, oz, dir.x, dir.y, dir.z, p.x - 0.5, p.y, p.z - 0.5, p.x + 0.5, p.y + PLAYER_H, p.z + 0.5);
+    if (t !== null && t < bestT) { bestT = t; hitId = p.id; }
+  }
+  for (const c of CRATES) {
+    const t = rayAABB(ox, oy, oz, dir.x, dir.y, dir.z, c.x - c.w / 2, 0, c.z - c.h / 2, c.x + c.w / 2, 2, c.z + c.h / 2);
+    if (t !== null && t < bestT) { bestT = t; hitId = null; }
+  }
+  return { x1: ox + dir.x * bestT, y1: oy + dir.y * bestT, z1: oz + dir.z * bestT, hitId };
+}
+
+/* ============ networking ============ */
+function newPeerId(code) { return "s3d" + code.toLowerCase(); }
+
+function hostSetup(code) {
+  G.isHost = true;
+  G.peer = new Peer("s3d" + code, { debug: 1 });
+  G.peer.on("open", (id) => {
+    setStatus("Кімната " + code + " — чекаємо гравців");
+    const p = addPlayer("host", G.myName, true);
+    G.myId = p.id;
+    startGame();
+  });
+  G.peer.on("connection", (conn) => {
+    conn.on("open", () => {
+      G.conns.set(conn.peer, conn);
+      setStatus(G.conns.size + " гравець(ів) у кімнаті");
+    });
+    conn.on("data", (d) => handleHostMsg(conn, d));
+    conn.on("close", () => {
+      const p = [...G.players.values()].find((x) => x.connId === conn.peer);
+      if (p) { G.players.delete(p.id); removeMesh(p); broadcast({ t: "leave", id: p.id, name: p.name }); }
+      G.conns.delete(conn.peer);
+      if (G.conns.size > 0) setStatus(G.conns.size + " гравець(ів) у кімнаті");
+    });
+  });
+  G.peer.on("error", (e) => {
+    if (e.type === "unavailable-id") setStatus("Кімната з таким кодом уже існує");
+    else setStatus("Помилка: " + e.type);
+  });
+}
+
+function guestSetup(code, attempt) {
+  attempt = attempt || 1;
+  G.peer = new Peer({ debug: 1 });
+  G.peer.on("open", () => {
+    const conn = G.peer.connect("s3d" + code, { reliable: false });
+    conn.on("open", () => {
+      G.conn = conn;
+      conn.send({ t: "join", name: G.myName });
+    });
+    conn.on("data", (d) => handleGuestMsg(d));
+    conn.on("close", () => { setStatus("Хост відключився"); setTimeout(() => location.reload(), 1200); });
+    conn.on("error", () => { setStatus("Помилка з\'єднання"); });
+  });
+  G.peer.on("error", (e) => {
+    if (e.type === "peer-unavailable" && attempt < 5) {
+      setStatus("З\'єднуємось... спроба " + attempt);
+      setTimeout(() => guestSetup(code, attempt + 1), 1500);
+    } else {
+      setStatus("Не вдалося знайти кімнату (" + e.type + ")");
+      $("createBtn").disabled = $("joinBtn").disabled = false;
+    }
+  });
+}
+
+function handleHostMsg(conn, d) {
+  if (d.t === "join") {
+    const p = addPlayer(conn.peer, d.name, false);
+    p.connId = conn.peer;
+    G.myId = G.myId; // host id unchanged
+    conn.send({ t: "welcome", id: p.id, ps: packPlayers() });
+    broadcast({ t: "join", id: p.id, name: d.name });
+  } else if (d.t === "i" && d.id) {
+    const p = G.players.get(d.id);
+    if (!p) return;
+    p.yaw = d.yaw; p.pitch = d.pitch;
+    if (p.alive) {
+      p.inp = { f: d.i.f, s: d.i.s, jump: d.i.j, fire: d.i.fire };
+      if (d.i.fire && !p.lastFire && performance.now() - p.lastShotAt > FIRE_CD * 1000) {
+        p.lastFire = true; p.lastShotAt = performance.now();
+        const res = castShot(p);
+        const victim = res.hitId ? G.players.get(res.hitId) : null;
+        if (victim) {
+          victim.hp -= DMG;
+          if (victim.hp <= 0 && victim.alive) {
+            victim.alive = false; victim.hp = 0;
+            victim.respawnAt = performance.now() + RESPAWN * 1000;
+            victim.vy = 6; victim.y = 0.5; // death pop
+            p.frags++;
+            broadcast({ t: "kill", killer: p.name, victim: victim.name, kfrags: p.frags });
+            kfAdd(p.name + " 💀 " + victim.name);
+          }
+        }
+        broadcast({ t: "shot", sx: p.x, sy: p.y + EYE, sz: p.z, x1: res.x1, y1: res.y1, z1: res.z1, hitId: res.hitId, shooterId: p.id });
+      } else if (!d.i.f) p.lastFire = false;
+    }
+  }
+}
+
+function handleGuestMsg(d) {
+  if (d.t === "welcome") {
+    G.myId = d.id;
+    for (const sp of d.ps) addPlayer(sp.id, sp.name, sp.id === d.id, sp);
+    $("menu").classList.add("hidden");
+    $("hud").style.display = "block";
+    startGame();
+  } else if (d.t === "st") {
+    G.stateBuf = d; G.lastStateAt = performance.now();
+  } else if (d.t === "join") {
+    addPlayer(d.id, d.name, false);
+    kfAdd(d.name + " зайшов у гру");
+  } else if (d.t === "leave") {
+    const p = G.players.get(d.id);
+    if (p) { G.players.delete(d.id); removeMesh(p); }
+  } else if (d.t === "shot") {
+    spawnTracer(d.sx, d.sy, d.sz, d.x1, d.y1, d.z1);
+    if (d.hitId && d.shooterId === G.myId) showHitmark();
+  } else if (d.t === "kill") {
+    kfAdd(d.killer + " 💀 " + d.victim);
+  }
+}
+
+function broadcast(msg) {
+  for (const c of G.conns.values()) { try { c.send(msg); } catch (e) {} }
+}
+
+function packPlayers() {
+  const arr = [];
+  for (const p of G.players.values()) arr.push(packOne(p));
+  return arr;
+}
+function packOne(p) {
+  return { id: p.id, name: p.name, x: p.x, y: p.y, z: p.z, yaw: p.yaw, pitch: p.pitch, hp: p.hp, alive: p.alive, frags: p.frags };
+}
+
+/* ============ host tick ============ */
+function hostTick(now) {
+  if (!G.isHost) return;
+  const dt = Math.min(0.05, (now - (G.lastHostTick || now)) / 1000);
+  G.lastHostTick = now;
+  for (const p of G.players.values()) {
+    if (p.alive) movePlayer(p, p.inp || { f: 0, s: 0, jump: false }, dt);
+    if (!p.alive && p.respawnAt && now >= p.respawnAt) {
+      const s = spawnPoint();
+      p.x = s.x; p.y = 0; p.z = s.z; p.vx = p.vy = p.vz = 0;
+      p.hp = MAX_HP; p.alive = true; p.respawnAt = 0;
+    }
+  }
+  G.stateAcc += dt;
+  if (G.stateAcc >= 1 / STATE_HZ) {
+    G.stateAcc = 0;
+    broadcast({ t: "st", now, ps: packPlayers() });
+    applyState({ now, ps: packPlayers() }); // host renders itself too
+  }
+}
+
+function spawnPoint() {
+  return { x: rnd(-ARENA + 2, ARENA - 2), z: rnd(-ARENA + 2, ARENA - 2) };
+}
+
+/* ============ player objects ============ */
+function addPlayer(id, name, isMe, initPos) {
+  const sp = initPos && typeof initPos.x === "number" ? { x: initPos.x, z: initPos.z } : spawnPoint();
+  const p = {
+    id, name, connId: null,
+    x: sp.x, y: initPos && typeof initPos.y === "number" ? initPos.y : 0, z: sp.z, vx: 0, vy: 0, vz: 0,
+    yaw: initPos && typeof initPos.yaw === "number" ? initPos.yaw : rnd(0, Math.PI * 2), pitch: initPos && typeof initPos.pitch === "number" ? initPos.pitch : 0,
+    hp: MAX_HP, alive: true, frags: 0, respawnAt: 0,
+    lastFire: false, lastShotAt: 0, inp: { f: 0, s: 0, jump: false },
+    isMe,
+  };
+  G.players.set(id, p);
+  if (!isMe) makeMesh(p);
+  return p;
+}
+
+function makeMesh(p) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.45, 0.9, 4, 10),
+    new THREE.MeshStandardMaterial({ color: 0x3d9bff, roughness: 0.5 })
+  );
+  body.position.y = PLAYER_H / 2;
+  g.add(body);
+  // facing indicator
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.3, 8), new THREE.MeshStandardMaterial({ color: 0xffd166 }));
+  nose.rotation.x = Math.PI / 2;
+  nose.position.set(0, PLAYER_H / 2, 0.55);
+  g.add(nose);
+  // name label
+  const cv = document.createElement("canvas");
+  cv.width = 256; cv.height = 64;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 34px system-ui";
+  ctx.textAlign = "center";
+  ctx.fillText(p.name, 128, 40);
+  const tex = new THREE.CanvasTexture(cv);
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+  spr.scale.set(2.4, 0.6, 1);
+  spr.position.y = PLAYER_H + 0.5;
+  g.add(spr);
+  p.mesh = g;
+  G.scene.add(g);
+}
+
+function removeMesh(p) {
+  if (p.mesh) { G.scene.remove(p.mesh); p.mesh = null; }
+}
+
+/* ============ state apply (guests + host render) ============ */
+function applyState(d) {
+  for (const sp of d.ps) {
+    let p = G.players.get(sp.id);
+    if (!p) { p = addPlayer(sp.id, sp.name, sp.id === G.myId); }
+    // update remote targets
+    if (p.isMe) {
+      const own = sp.id === G.myId;
+      if (own) {
+        // snap own predicted pos if too far from authority
+        const dx = p.x - sp.x, dz = p.z - sp.z;
+        if (Math.hypot(dx, dz) > 4 || p.y > sp.y + 4) {
+          p.x = sp.x; p.y = sp.y; p.z = sp.z; p.vx = p.vy = p.vz = 0;
+        }
+        p.hp = sp.hp; p.alive = sp.alive; p.frags = sp.frags;
+        if (sp.alive && sp.y === 0 && p.vy === 0 && Math.abs(p.y - 0) > 1.5) { p.y = sp.y; }
+      }
+    } else {
+      p.hp = sp.hp; p.alive = sp.alive; p.frags = sp.frags;
+      p.tx = sp.x; p.ty = sp.y; p.tz = sp.z; p.yaw = sp.yaw;
+      if (!p.mesh) makeMesh(p);
+      if (p.mesh) {
+        if (!p.alive) p.mesh.visible = false;
+        else {
+          p.mesh.visible = true;
+          const k = Math.min(1, 12 * (G.clock.getDelta ? 1 / 60 : 0.016));
+          const lerpK = 1 - Math.pow(0.001, 1 / 60);
+          p.mesh.position.x += (p.tx - p.mesh.position.x) * lerpK;
+          p.mesh.position.y += (p.ty + PLAYER_H / 2 - p.mesh.position.y) * lerpK;
+          p.mesh.position.z += (p.tz - p.mesh.position.z) * lerpK;
+          p.mesh.rotation.y = p.yaw;
+        }
+      }
+    }
+  }
+  // respawn countdown for own death
+  if (G.myId) {
+    const me = G.players.get(G.myId);
+    if (me && !me.alive) {
+      G.deadUntil = Math.max(G.deadUntil, (me.respawnAt || 0));
+      $("dead").classList.add("show");
+      const left = Math.max(0, Math.ceil((G.deadUntil - performance.now()) / 1000));
+      $("deadCnt").textContent = "відродження за " + left + "...";
+    } else {
+      $("dead").classList.remove("show");
+    }
+    if (me) {
+      $("hpFill").style.width = Math.max(0, me.hp) + "%";
+      $("hpFill").style.background = me.hp > 50 ? "#2fd86b" : me.hp > 25 ? "#ffd166" : "#ff5c5c";
+      $("fragsVal").textContent = me.frags;
+    }
+  }
+}
+
+/* ============ tracers / fx ============ */
+function spawnTracer(sx, sy, sz, x1, y1, z1) {
+  const geo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(sx, sy, sz), new THREE.Vector3(x1, y1, z1)
+  ]);
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.9 }));
+  G.scene.add(line);
+  G.tracers.push({ line, t: 0 });
+}
+
+function showHitmark() {
+  const hm = $("hitmark");
+  hm.classList.remove("show");
+  void hm.offsetWidth;
+  hm.classList.add("show");
+}
+
+function kfAdd(text) {
+  const el = document.createElement("div");
+  el.className = "kf";
+  el.textContent = text;
+  $("killfeed").appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+  while ($("killfeed").children.length > 4) $("killfeed").firstChild.remove();
+}
+
+/* ============ input: desktop ============ */
+function bindDesktop() {
+  const keys = {};
+  window.addEventListener("keydown", (e) => {
+    keys[e.code] = true;
+    if (e.code === "Space") e.preventDefault();
+  });
+  window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+  window.addEventListener("mousemove", (e) => {
+    if (document.pointerLockElement !== G.renderer.domElement) return;
+    const me = G.myId ? G.players.get(G.myId) : null;
+    if (!me || !me.alive) return;
+    me.yaw -= e.movementX * 0.0025;
+    me.pitch = clamp(me.pitch - e.movementY * 0.0025, -1.5, 1.5);
+  });
+  window.addEventListener("mousedown", (e) => { if (e.button === 0 && document.pointerLockElement) G.input.fire = true; });
+  window.addEventListener("mouseup", (e) => { if (e.button === 0) G.input.fire = false; });
+  G.renderer.domElement.addEventListener("click", () => {
+    if (!G.running) return;
+    if (document.pointerLockElement !== G.renderer.domElement) G.renderer.domElement.requestPointerLock();
+  });
+  // poll keys -> input
+  setInterval(() => {
+    if (!G.running) return;
+    const w = keys["KeyW"] || keys["ArrowUp"], s = keys["KeyS"] || keys["ArrowDown"];
+    const a = keys["KeyA"] || keys["ArrowLeft"], d = keys["KeyD"] || keys["ArrowRight"];
+    G.input.f = (w ? 1 : 0) - (s ? 1 : 0);
+    G.input.s = (d ? 1 : 0) - (a ? 1 : 0);
+    G.input.jump = !!keys["Space"];
+  }, 16);
+}
+
+/* ============ input: touch ============ */
+function bindTouch() {
+  document.body.classList.add("touch");
+  const joy = { id: null, bx: 0, by: 0, dx: 0, dy: 0 };
+  const look = { id: null, lx: 0, ly: 0 };
+  const base = $("joyBase"), knob = $("joyKnob");
+
+  window.addEventListener("touchstart", (e) => {
+    for (const t of e.changedTouches) {
+      const x = t.clientX, y = t.clientY;
+      const onFire = hitEl($("fireBtn"), x, y), onJump = hitEl($("jumpBtn"), x, y);
+      if (onFire) { G.input.fire = true; $("fireBtn").classList.add("active"); continue; }
+      if (onJump) { G.input.jump = true; continue; }
+      if (joy.id === null && x < window.innerWidth * 0.45) {
+        joy.id = t.identifier; joy.bx = x; joy.by = y;
+        base.style.left = (x - 60) + "px"; base.style.top = (y - 60) + "px";
+        base.style.display = "block";
+        continue;
+      }
+      if (look.id === null) { look.id = t.identifier; look.lx = x; look.ly = y; }
+    }
+    e.preventDefault();
+  }, { passive: false });
+
+  window.addEventListener("touchmove", (e) => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === joy.id) {
+        let dx = t.clientX - joy.bx, dy = t.clientY - joy.by;
+        const len = Math.hypot(dx, dy);
+        const max = 50;
+        if (len > max) { dx = dx / len * max; dy = dy / len * max; }
+        joy.dx = dx; joy.dy = dy;
+        knob.style.transform = "translate(" + (dx - 26) + "px," + (dy - 26) + "px)";
+        const k = len > max ? 1 : len / max;
+        G.input.s = (dx / max) * k;
+        G.input.f = (-dy / max) * k;
+      } else if (t.identifier === look.id) {
+        const me = G.myId ? G.players.get(G.myId) : null;
+        if (me && me.alive) {
+          me.yaw -= (t.clientX - look.lx) * 0.005;
+          me.pitch = clamp(me.pitch - (t.clientY - look.ly) * 0.005, -1.5, 1.5);
+        }
+        look.lx = t.clientX; look.ly = t.clientY;
+      }
+    }
+    e.preventDefault();
+  }, { passive: false });
+
+  const endTouch = (e) => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === joy.id) {
+        joy.id = null; joy.dx = 0; joy.dy = 0;
+        G.input.f = 0; G.input.s = 0;
+        knob.style.transform = "translate(-50%,-50%)";
+        base.style.display = "none";
+      }
+      if (t.identifier === look.id) look.id = null;
+      if (hitEl($("fireBtn"), t.clientX, t.clientY)) { G.input.fire = false; $("fireBtn").classList.remove("active"); }
+      if (hitEl($("jumpBtn"), t.clientX, t.clientY)) G.input.jump = false;
+    }
+  };
+  window.addEventListener("touchend", endTouch);
+  window.addEventListener("touchcancel", endTouch);
+}
+
+function hitEl(el, x, y) {
+  const r = el.getBoundingClientRect();
+  return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+}
+
+function isTouchDevice() {
+  return ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
+}
+
+/* ============ loop ============ */
+function startGame() {
+  G.running = true;
+  $("status").textContent = "";
+  requestAnimationFrame(loop);
+}
+
+function loop() {
+  requestAnimationFrame(loop);
+  const now = performance.now();
+  const dt = G.clock.getDelta();
+
+  // host authority tick
+  if (G.isHost) hostTick(now);
+
+  // guest sends input + local prediction (feels responsive, host corrects)
+  if (!G.isHost && G.conn && G.conn.open && G.myId) {
+    const me = G.players.get(G.myId);
+    if (me && me.alive) {
+      movePlayer(me, { f: G.input.f, s: G.input.s, jump: G.input.jump }, dt);
+    }
+    G.inAcc += dt;
+    if (G.inAcc >= 1 / INPUT_HZ) {
+      G.inAcc = 0;
+      if (me) {
+        try {
+          G.conn.send({ t: "i", id: G.myId, yaw: me.yaw, pitch: me.pitch, i: { f: G.input.f, s: G.input.s, j: G.input.jump, fire: G.input.fire } });
+        } catch (e) {}
+      }
+    }
+  }
+
+  // host sends own input (itself as player)
+  if (G.isHost && G.myId) {
+    const me = G.players.get(G.myId);
+    if (me && me.alive) {
+      me.inp = { f: G.input.f, s: G.input.s, jump: G.input.jump };
+      if (G.input.fire && !me.lastFire && now - me.lastShotAt > FIRE_CD * 1000) {
+        me.lastFire = true; me.lastShotAt = now;
+        const res = castShot(me);
+        spawnTracer(me.x, me.y + EYE, me.z, res.x1, res.y1, res.z1);
+        const victim = res.hitId ? G.players.get(res.hitId) : null;
+        if (victim) {
+          victim.hp -= DMG;
+          if (victim.hp <= 0 && victim.alive) {
+            victim.alive = false; victim.hp = 0;
+            victim.respawnAt = now + RESPAWN * 1000;
+            victim.vy = 6; victim.y = 0.5;
+            me.frags++;
+            broadcast({ t: "kill", killer: me.name, victim: victim.name, kfrags: me.frags });
+            kfAdd(me.name + " 💀 " + victim.name);
+          }
+          showHitmark();
+        }
+        broadcast({ t: "shot", sx: me.x, sy: me.y + EYE, sz: me.z, x1: res.x1, y1: res.y1, z1: res.z1, hitId: res.hitId, shooterId: me.id });
+      } else if (!G.input.fire) me.lastFire = false;
+    }
+  }
+
+  // apply state for guests
+  if (!G.isHost && G.stateBuf) {
+    if (performance.now() - G.lastStateAt < 300) applyState(G.stateBuf);
+    G.stateBuf = null;
+  }
+
+  // camera follow own player
+  if (G.myId) {
+    const me = G.players.get(G.myId);
+    if (me) {
+      G.camera.position.set(me.x, me.y + EYE, me.z);
+      G.camera.rotation.order = "YXZ";
+      G.camera.rotation.y = me.yaw;
+      G.camera.rotation.x = me.pitch;
+    }
+  }
+
+  // tracers fade
+  for (let i = G.tracers.length - 1; i >= 0; i--) {
+    const tr = G.tracers[i];
+    tr.t += dt;
+    if (tr.t > 0.12) { G.scene.remove(tr.line); G.tracers.splice(i, 1); }
+  }
+
+  G.renderer.render(G.scene, G.camera);
+}
+
+/* ============ status ============ */
+function setStatus(t) { $("status").textContent = t; }
+
+/* ============ ui flow ============ */
+let savedName = localStorage.getItem("proto_name") || "";
+$("nameInp").value = savedName;
+$("nameInp").addEventListener("input", () => { savedName = $("nameInp").value; localStorage.setItem("proto_name", savedName); });
+
+function genCode() {
+  let s = "";
+  for (let i = 0; i < 5; i++) s += ALPHA[Math.floor(Math.random() * ALPHA.length)];
+  return s;
+}
+
+$("createBtn").addEventListener("click", () => {
+  const name = ($("nameInp").value || "Гравець").trim().slice(0, 14);
+  G.myName = name;
+  const code = genCode();
+  $("createBtn").disabled = $("joinBtn").disabled = true;
+  hostSetup(code);
+  const url = location.origin + location.pathname + "#room=" + code;
+  $("linkBox").style.display = "block";
+  $("copyBtn").style.display = "block";
+  $("linkBox").textContent = "Лінк для друзів:\n" + url;
+});
+
+$("copyBtn").addEventListener("click", () => {
+  const code = (location.hash.match(/room=([A-Z0-9]{5})/) || [])[1];
+  const url = location.origin + location.pathname + "#room=" + code;
+  navigator.clipboard.writeText(url).then(() => { $("copyBtn").textContent = "✓ Скопійовано"; setTimeout(() => { $("copyBtn").textContent = "Скопіювати лінк"; }, 1500); });
+});
+
+function joinFromCode(code) {
+  const name = ($("nameInp").value || "Гравець").trim().slice(0, 14);
+  G.myName = name;
+  $("createBtn").disabled = $("joinBtn").disabled = true;
+  guestSetup(code);
+}
+
+$("joinBtn").addEventListener("click", () => {
+  const code = $("codeInp").value.trim().toUpperCase();
+  if (code.length !== 5) { setStatus("Код — 5 символів"); return; }
+  joinFromCode(code);
+});
+
+// auto-join from URL hash
+(function () {
+  const m = location.hash.match(/room=([A-Za-z0-9]{5})/);
+  if (m) {
+    const code = m[1].toUpperCase();
+    $("codeInp").value = code;
+    setTimeout(() => joinFromCode(code), 300);
+  }
+})();
+
+/* ============ boot ============ */
+init3d();
+if (isTouchDevice()) bindTouch(); else bindDesktop();
+if (window.innerHeight > window.innerWidth && isTouchDevice()) $("hintRotate").style.display = "flex";
+window.addEventListener("resize", () => {
+  $("hintRotate").style.display = (window.innerHeight > window.innerWidth && isTouchDevice()) ? "flex" : "none";
+});
+
+/* ============ test hooks ============ */
+window.__game = {
+  get players() { return [...G.players.values()].map((p) => ({ id: p.id, name: p.name, x: p.x, y: p.y, z: p.z, hp: p.hp, alive: p.alive, frags: p.frags })); },
+  get isHost() { return G.isHost; },
+  get myId() { return G.myId; },
+  // host-authoritative teleport of any player (host only, for tests)
+  teleport(id, x, z, yaw) {
+    if (!G.isHost) return "host-only";
+    const p = G.players.get(id);
+    if (!p) return "no-player";
+    p.x = x; p.z = z; p.y = 0; p.vx = p.vy = p.vz = 0;
+    if (typeof yaw === "number") p.yaw = yaw;
+    return "ok";
+  },
+  setInput(f, s, j, fire) { G.input.f = f; G.input.s = s; G.input.j = j; G.input.fire = fire; },
+  setYaw(y) { const me = G.myId ? G.players.get(G.myId) : null; if (me) me.yaw = y; },
+  setPitch(p) { const me = G.myId ? G.players.get(G.myId) : null; if (me) me.pitch = p; },
+  fire() { G.input.fire = true; },
+  fireOff() { G.input.fire = false; },
+  get status() { return $("status").textContent; },
+  get connected() { return G.isHost ? G.conns.size : (G.conn ? G.conn.open : false); },
+  get connCount() { return G.isHost ? G.conns.size : (G.conn && G.conn.open ? 1 : 0); },
+};
+</script>
+</body>
+</html>
