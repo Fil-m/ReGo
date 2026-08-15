@@ -20,6 +20,13 @@
   .btn.green { background:#1faa4f; }
   .btn:disabled { opacity:0.5; }
   #linkBox { width:min(320px, 90vw); background:#141b29; border:1px solid #2a3448; border-radius:10px; padding:10px; font-size:12px; word-break:break-all; color:#9fb2d8; text-align:center; }
+  #qrBox { display:none; flex-direction:column; align-items:center; gap:6px; background:#fff; padding:14px; border-radius:12px; }
+  #qrBox canvas, #qrBox img { display:block; border-radius:6px; }
+  #qrCodeText { color:#0b0e14; font-weight:700; font-size:15px; letter-spacing:2px; }
+  #qrOverlay { position:fixed; inset:0; z-index:70; flex-direction:column; align-items:center; justify-content:center; gap:10px; background:rgba(8,11,18,0.94); padding:20px; }
+  #qrOverlayBox { background:#fff; padding:14px; border-radius:12px; }
+  #qrOverlayBox canvas, #qrOverlayBox img { display:block; border-radius:6px; }
+  #qrOverlayCode { font-size:30px; font-weight:800; color:#ffd166; letter-spacing:6px; }
   .row { display:flex; gap:8px; width:min(320px,90vw); }
   .row .btn { flex:1; width:auto; }
   #status { position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:20; background:rgba(10,14,22,0.75); padding:5px 12px; border-radius:20px; font-size:12px; color:#9fb2d8; pointer-events:none; }
@@ -76,6 +83,18 @@
   </div>
   <div id="linkBox" style="display:none"></div>
   <button class="btn gray" id="copyBtn" style="display:none">Скопіювати лінк</button>
+  <div id="qrWrap" style="display:none">
+    <div class="sub" style="margin-bottom:4px">Скануй QR — і ти в грі 📱</div>
+    <div id="qrBox"></div>
+    <div id="qrCodeText"></div>
+  </div>
+</div>
+<div id="qrOverlay" style="display:none">
+  <div class="sub" style="font-size:16px; margin-bottom:4px">📱 Скануй QR — і ти в грі!</div>
+  <div id="qrOverlayBox"></div>
+  <div id="qrOverlayCode"></div>
+  <div class="sub" style="font-size:12px; margin-top:6px">або введи код вручну</div>
+  <button class="btn green" id="qrCloseBtn">Грати ▶</button>
 </div>
 <div id="hintRotate">Поверни телефон горизонтально 🔄<br><small>гра працює в landscape</small></div>
 <div id="status"></div>
@@ -97,6 +116,7 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.149.0/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 "use strict";
 /* ============ helpers ============ */
@@ -279,6 +299,7 @@ function hostSetup(code) {
   G.peer.on("open", (id) => {
     if (!location.hash) location.hash = "room=" + code;
     setStatus("Кімната " + code + " — чекаємо гравців. Код: " + code);
+    if (isTouchDevice()) showQROverlay(code);
     const p = addPlayer("host", G.myName, true);
     G.myId = p.id;
     $("menu").classList.add("hidden");
@@ -868,7 +889,30 @@ $("createBtn").addEventListener("click", () => {
   $("linkBox").style.display = "block";
   $("copyBtn").style.display = "block";
   $("linkBox").textContent = "Код кімнати: " + code + "\nЛінк для друзів:\n" + url;
+  showQR(url, code);
 });
+
+function showQR(url, code) {
+  const wrap = $("qrWrap"), box = $("qrBox"), txt = $("qrCodeText");
+  if (!wrap) return;
+  wrap.style.display = "flex";
+  box.innerHTML = "";
+  if (typeof QRCode !== "undefined") {
+    new QRCode(box, { text: url, width: 190, height: 190, correctLevel: QRCode.CorrectLevel.M });
+  }
+  txt.textContent = "Код: " + code;
+}
+
+function showQROverlay(code) {
+  const ov = $("qrOverlay"), box = $("qrOverlayBox"), txt = $("qrOverlayCode");
+  if (!ov || typeof QRCode === "undefined") return;
+  const url = location.origin + location.pathname + "#room=" + code;
+  ov.style.display = "flex";
+  box.innerHTML = "";
+  new QRCode(box, { text: url, width: 210, height: 210, correctLevel: QRCode.CorrectLevel.M });
+  txt.textContent = code;
+}
+$("qrCloseBtn").addEventListener("click", () => { $("qrOverlay").style.display = "none"; });
 
 $("copyBtn").addEventListener("click", () => {
   const code = (location.hash.match(/room=([A-Z0-9]{5})/) || [])[1];
