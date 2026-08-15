@@ -354,12 +354,14 @@ function handleHostMsg(conn, d) {
   if (d.t === "join") {
     const p = addPlayer(conn.peer, d.name, false);
     p.connId = conn.peer;
+    p.lastSeenAt = performance.now();
     G.myId = G.myId; // host id unchanged
     conn.send({ t: "welcome", id: p.id, ps: packPlayers() });
     broadcast({ t: "join", id: p.id, name: d.name });
   } else if (d.t === "i" && d.id) {
     const p = G.players.get(d.id);
     if (!p) return;
+    p.lastSeenAt = performance.now();
     p.yaw = d.yaw; p.pitch = d.pitch;
     if (p.alive) {
       p.inp = { f: d.i.f, s: d.i.s, jump: d.i.j, fire: d.i.fire };
@@ -425,6 +427,17 @@ function hostTick(now) {
   if (!G.isHost) return;
   const dt = Math.min(0.05, (now - (G.lastHostTick || now)) / 1000);
   G.lastHostTick = now;
+  // drop ghost players: no input for 5s (closed tab / dead WebRTC channel)
+  for (const p of [...G.players.values()]) {
+    if (p.id === "host" || !p.connId) continue;
+    if (now - (p.lastSeenAt || 0) > 5000) {
+      const conn = G.conns.get(p.connId);
+      if (conn) { try { conn.close(); } catch (e) {} G.conns.delete(p.connId); }
+      G.players.delete(p.id);
+      removeMesh(p);
+      broadcast({ t: "leave", id: p.id, name: p.name });
+    }
+  }
   for (const p of G.players.values()) {
     if (p.alive) movePlayer(p, p.inp || { f: 0, s: 0, jump: false }, dt);
     if (!p.alive && p.respawnAt && now >= p.respawnAt) {
