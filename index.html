@@ -169,7 +169,7 @@ function init3d() {
     const len = Math.sqrt(dx * dx + dz * dz);
     const m = new THREE.Mesh(new THREE.BoxGeometry(len, h, 1), wallMat);
     m.position.set((sx + ex) / 2, h / 2, (sz + ez) / 2);
-    m.rotation.y = Math.atan2(dx, dz);
+    m.rotation.y = Math.atan2(-dz, dx);
     G.scene.add(m);
   };
   edge(-ARENA, -ARENA, ARENA, -ARENA, 3); edge(-ARENA, ARENA, ARENA, ARENA, 3);
