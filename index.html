@@ -389,6 +389,7 @@ function handleHostMsg(conn, d) {
 function handleGuestMsg(d) {
   if (d.t === "welcome") {
     G.myId = d.id;
+    G.lastStateAt = performance.now();
     for (const sp of d.ps) addPlayer(sp.id, sp.name, sp.id === d.id, sp);
     $("menu").classList.add("hidden");
     $("hud").style.display = "block";
@@ -715,10 +716,12 @@ function loop() {
   // host authority tick
   if (G.isHost) hostTick(now);
 
-  // guest sends input + local prediction (feels responsive, host corrects)
+  // guest sends input + local prediction ONLY while receiving fresh state
+  // (dead WebRTC channel = no prediction, otherwise player drifts away from model)
   if (!G.isHost && G.conn && G.conn.open && G.myId) {
     const me = G.players.get(G.myId);
-    if (me && me.alive) {
+    const stateFresh = performance.now() - G.lastStateAt < 600;
+    if (me && me.alive && stateFresh) {
       movePlayer(me, { f: G.input.f, s: G.input.s, jump: G.input.jump }, dt);
     }
     G.inAcc += dt;
@@ -763,6 +766,15 @@ function loop() {
   if (!G.isHost && G.stateBuf) {
     if (performance.now() - G.lastStateAt < 300) applyState(G.stateBuf);
     G.stateBuf = null;
+  }
+
+  // watchdog: guest with dead channel (no state for 5s) auto-reconnects
+  if (!G.isHost && G.myId && G.running) {
+    if (performance.now() - G.lastStateAt > 5000) {
+      setStatus("З'єднання втрачено — перепідключаємось...");
+      setTimeout(() => location.reload(), 400);
+      return;
+    }
   }
 
   // camera follow own player
