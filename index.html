@@ -504,9 +504,9 @@ function applyState(d) {
     if (p.isMe) {
       const own = sp.id === G.myId;
       if (own) {
-        // snap own predicted pos if too far from authority
+        // snap own predicted pos if too far from authority (tight: aim must match)
         const dx = p.x - sp.x, dz = p.z - sp.z;
-        if (Math.hypot(dx, dz) > 4 || p.y > sp.y + 4) {
+        if (Math.hypot(dx, dz) > 1.5 || p.y > sp.y + 2) {
           p.x = sp.x; p.y = sp.y; p.z = sp.z; p.vx = p.vy = p.vz = 0;
         }
         p.hp = sp.hp; p.alive = sp.alive; p.frags = sp.frags;
