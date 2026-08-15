@@ -54,7 +54,7 @@
   #jumpBtn { position:absolute; right:140px; bottom:90px; width:58px; height:58px; border-radius:50%; background:rgba(120,180,255,0.25); border:2px solid rgba(150,200,255,0.55); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:rgba(255,255,255,0.85); }
   #hintTouch { position:absolute; top:14px; left:50%; transform:translateX(-50%); font-size:12px; color:#8a93a6; background:rgba(10,14,22,0.6); padding:4px 12px; border-radius:16px; }
   @media (orientation:portrait) { #hintRotate { display:flex; } }
-  #hintRotate { position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; text-align:center; background:#0b0e14; font-size:18px; padding:30px; }
+  #hintRotate { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:60; display:none; align-items:center; justify-content:center; text-align:center; background:rgba(10,14,22,0.85); border:1px solid #2a3448; border-radius:14px; font-size:13px; padding:8px 16px; pointer-events:none; max-width:86vw; }
 </style>
 </head>
 <body>
@@ -583,6 +583,7 @@ function bindTouch() {
   const base = $("joyBase"), knob = $("joyKnob");
 
   window.addEventListener("touchstart", (e) => {
+    if (!G.running) return; // menu: let inputs/buttons work normally
     for (const t of e.changedTouches) {
       const x = t.clientX, y = t.clientY;
       const onFire = hitEl($("fireBtn"), x, y), onJump = hitEl($("jumpBtn"), x, y);
@@ -600,6 +601,7 @@ function bindTouch() {
   }, { passive: false });
 
   window.addEventListener("touchmove", (e) => {
+    if (!G.running) return;
     for (const t of e.changedTouches) {
       if (t.identifier === joy.id) {
         let dx = t.clientX - joy.bx, dy = t.clientY - joy.by;
@@ -793,10 +795,20 @@ $("joinBtn").addEventListener("click", () => {
 /* ============ boot ============ */
 init3d();
 if (isTouchDevice()) bindTouch(); else bindDesktop();
-if (window.innerHeight > window.innerWidth && isTouchDevice()) $("hintRotate").style.display = "flex";
-window.addEventListener("resize", () => {
-  $("hintRotate").style.display = (window.innerHeight > window.innerWidth && isTouchDevice()) ? "flex" : "none";
-});
+let rotateHintTimer = null;
+function updateRotateHint() {
+  const el = $("hintRotate");
+  clearTimeout(rotateHintTimer);
+  if (window.innerHeight > window.innerWidth && isTouchDevice()) {
+    el.style.display = "flex";
+    rotateHintTimer = setTimeout(() => { el.style.display = "none"; }, 3000);
+  } else {
+    el.style.display = "none";
+  }
+}
+updateRotateHint();
+window.addEventListener("resize", updateRotateHint);
+window.addEventListener("orientationchange", () => setTimeout(updateRotateHint, 300));
 
 /* ============ test hooks ============ */
 window.__game = {
