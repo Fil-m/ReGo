@@ -19,7 +19,6 @@
   .btn:active { transform:scale(0.98); }
   .btn.gray { background:#232c40; }
   .btn.green { background:#1faa4f; }
-  .btn.yellow { background:#e0a83c; color:#0b0e14; }
   .btn:disabled { opacity:0.5; }
   #linkBox { width:min(320px, 90vw); background:#141b29; border:1px solid #2a3448; border-radius:10px; padding:10px; font-size:12px; word-break:break-all; color:#9fb2d8; text-align:center; }
   #qrBox { display:none; flex-direction:column; align-items:center; gap:6px; background:#fff; padding:14px; border-radius:12px; }
@@ -76,7 +75,6 @@
     <button class="btn green" id="quickBtn">⚡ Грати разом</button>
   </div>
   <div class="sub" style="margin-top:-4px">Спільна кімната: код <b id="quickCode">REGO1</b><br>перший гравець стає хостом, решта заходять самі</div>
-  <button class="btn yellow" id="botBtn" style="margin-top:2px">🤖 Проти бота</button>
   <div class="row">
     <button class="btn" id="createBtn">Створити свою</button>
   </div>
@@ -153,7 +151,6 @@ const G = {
   scene: null, camera: null, renderer: null, tracers: [], clock: null,
   running: false, deadUntil: 0, kf: [],
   touchLook: null, joy: null, joyId: null,
-  wantBot: false, botId: null,
 };
 
 /* ============ three init ============ */
@@ -309,7 +306,6 @@ function hostSetup(code) {
     $("menu").classList.add("hidden");
     $("hud").style.display = "block";
     startGame();
-    if (G.wantBot) spawnBot();
   });
   G.peer.on("connection", (conn) => {
     conn.on("open", () => {
@@ -474,7 +470,6 @@ function hostTick(now) {
     }
   }
   for (const p of G.players.values()) {
-    if (p.id === G.botId) botAI(p, now);
     if (p.alive) movePlayer(p, p.inp || { f: 0, s: 0, jump: false }, dt);
     if (!p.alive && p.respawnAt && now >= p.respawnAt) {
       const s = spawnPoint();
@@ -492,65 +487,6 @@ function hostTick(now) {
 
 function spawnPoint() {
   return { x: rnd(-ARENA + 2, ARENA - 2), z: rnd(-ARENA + 2, ARENA - 2) };
-}
-
-/* ============ offline bot (host-side AI, no network) ============ */
-function spawnBot() {
-  if (G.botId) return;
-  const s = spawnPoint();
-  const b = addPlayer("bot", "🤖 Бот", false, { x: s.x, y: 0, z: s.z });
-  b.inp = { f: 0, s: 0, jump: false, fire: false };
-  b.lastShotAt = 0;
-  G.botId = b.id;
-  setStatus("Бот у грі — стріляй!");
-  kfAdd("🤖 Бот приєднався до бою");
-}
-
-function botAI(p, now) {
-  if (!p.alive) { p.inp = { f: 0, s: 0, jump: false, fire: false }; return; }
-  // find nearest alive human (not the bot itself)
-  let target = null, bestD = 1e9;
-  for (const o of G.players.values()) {
-    if (o.id === p.id || !o.alive) continue;
-    const d = Math.hypot(o.x - p.x, o.z - p.z);
-    if (d < bestD) { bestD = d; target = o; }
-  }
-  if (!target) { p.inp = { f: 0, s: 0, jump: false, fire: false }; return; }
-  const dx = target.x - p.x, dz = target.z - p.z;
-  const wantYaw = Math.atan2(-dx, -dz);
-  // smooth turn toward target
-  let dy = wantYaw - p.yaw;
-  while (dy > Math.PI) dy -= Math.PI * 2;
-  while (dy < -Math.PI) dy += Math.PI * 2;
-  p.yaw += dy * Math.min(1, 5 * 0.05);
-  // movement: keep a fighting distance (strafe around target)
-  let f = 0, s = 0;
-  if (bestD > 11) f = 1;
-  else if (bestD < 6) f = -1;
-  else s = Math.sin(now / 700) > 0 ? 1 : -1;
-  // fire when roughly aligned and in range (with a miss chance so it's beatable)
-  const aligned = Math.abs(dy) < 0.3;
-  const fire = aligned && bestD < 26 && Math.random() < 0.55;
-  p.inp = { f, s, jump: false, fire };
-  // host-side hitscan for the bot
-  if (fire && !p.lastFire && now - p.lastShotAt > FIRE_CD * 1000) {
-    p.lastFire = true; p.lastShotAt = now;
-    const res = castShot(p);
-    spawnTracer(p.x, p.y + EYE, p.z, res.x1, res.y1, res.z1);
-    const victim = res.hitId ? G.players.get(res.hitId) : null;
-    if (victim) {
-      victim.hp -= DMG;
-      if (victim.hp <= 0 && victim.alive) {
-        victim.alive = false; victim.hp = 0;
-        victim.respawnAt = now + RESPAWN * 1000;
-        victim.vy = 6; victim.y = 0.5;
-        p.frags++;
-        broadcast({ t: "kill", killer: p.name, victim: victim.name, kfrags: p.frags });
-        kfAdd(p.name + " 💀 " + victim.name);
-      }
-    }
-    broadcast({ t: "shot", sx: p.x, sy: p.y + EYE, sz: p.z, x1: res.x1, y1: res.y1, z1: res.z1, hitId: res.hitId, shooterId: p.id });
-  } else if (!fire) p.lastFire = false;
 }
 
 /* ============ player objects ============ */
@@ -942,18 +878,9 @@ function genCode() {
 $("quickBtn").addEventListener("click", () => {
   G.myName = ($("nameInp").value || "Гравець").trim().slice(0, 14);
   const code = $("quickCode").textContent.trim();
-  $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = $("botBtn").disabled = true;
+  $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = true;
   setStatus("Шукаємо кімнату " + code + "...");
   guestSetup(code, 1, true);
-});
-
-$("botBtn").addEventListener("click", () => {
-  G.myName = ($("nameInp").value || "Гравець").trim().slice(0, 14);
-  G.wantBot = true;
-  $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = $("botBtn").disabled = true;
-  const code = genCode();
-  setStatus("Створюємо кімнату з ботом...");
-  hostSetup(code);
 });
 
 $("createBtn").addEventListener("click", () => {
