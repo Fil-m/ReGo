@@ -379,7 +379,7 @@ function handleHostMsg(conn, d) {
           }
         }
         broadcast({ t: "shot", sx: p.x, sy: p.y + EYE, sz: p.z, x1: res.x1, y1: res.y1, z1: res.z1, hitId: res.hitId, shooterId: p.id });
-      } else if (!d.i.f) p.lastFire = false;
+      } else if (!d.i.fire) p.lastFire = false;
     }
   }
 }
@@ -504,10 +504,14 @@ function applyState(d) {
     if (p.isMe) {
       const own = sp.id === G.myId;
       if (own) {
-        // snap own predicted pos if too far from authority (tight: aim must match)
-        const dx = p.x - sp.x, dz = p.z - sp.z;
-        if (Math.hypot(dx, dz) > 1.5 || p.y > sp.y + 2) {
+        // smooth reconciliation: pull toward authority, hard-snap only on big jumps (respawn/teleport)
+        const dx = sp.x - p.x, dz = sp.z - p.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist > 6 || p.y > sp.y + 2) {
           p.x = sp.x; p.y = sp.y; p.z = sp.z; p.vx = p.vy = p.vz = 0;
+        } else if (dist > 0.01) {
+          const k = Math.min(1, 0.35 + dist * 0.06);
+          p.x += dx * k; p.z += dz * k;
         }
         p.hp = sp.hp; p.alive = sp.alive; p.frags = sp.frags;
         if (sp.alive && sp.y === 0 && p.vy === 0 && Math.abs(p.y - 0) > 1.5) { p.y = sp.y; }
@@ -759,11 +763,14 @@ function loop() {
     }
   }
 
-  // tracers fade
+  // tracers fade (0.45s lifetime, smooth opacity)
   for (let i = G.tracers.length - 1; i >= 0; i--) {
     const tr = G.tracers[i];
     tr.t += dt;
-    if (tr.t > 0.12) { G.scene.remove(tr.line); G.tracers.splice(i, 1); }
+    if (tr.t > 0.45) { G.scene.remove(tr.line); G.tracers.splice(i, 1); }
+    else {
+      tr.line.material.opacity = 0.9 * (1 - tr.t / 0.45);
+    }
   }
 
   G.renderer.render(G.scene, G.camera);
