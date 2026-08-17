@@ -802,9 +802,28 @@ function connectWS(code) {
     try { d = JSON.parse(ev.data); } catch (e) { return; }
     handleMsg(d);
   };
-  ws.onclose = () => { setStatus("З'єднання втрачено — перезаходимо..."); setTimeout(() => location.reload(), 800); };
+  ws.onclose = () => {
+    setStatus("З'єднання втрачено — перезаходимо...");
+    if (document.hidden) { G.wsGone = true; return; }   // фонова вкладка не циклює reload
+    setTimeout(() => location.reload(), 800);
+  };
   ws.onerror = () => { setStatus("Помилка з'єднання з сервером"); $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = false; };
 }
+
+// пінг окремим таймером: RAF у фоновій вкладці зупиняється, таймер — лише гальмується,
+// тож з'єднання лишається живим навіть коли вкладка у фоні
+setInterval(() => {
+  if (G.ws && G.ws.readyState === 1) {
+    try { G.ws.send(JSON.stringify({ t: "ping", ts: performance.now() })); } catch (e) {}
+  }
+}, 2000);
+// при поверненні з фону: якщо з'єднання мертве — перепідключитись
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && G.myId) {
+    const dead = !G.ws || G.ws.readyState !== 1;
+    if (dead || G.wsGone) { G.wsGone = false; location.reload(); }
+  }
+});
 
 function decodeB64(b64) {
   const bin = atob(b64);
@@ -1864,10 +1883,6 @@ function loop() {
           G.ws.send(JSON.stringify({ t: "i", yaw: me.yaw, pitch: me.pitch, f: G.input.f, s: G.input.s, j: G.input.jump, act: G.input.act, ext: G.input.ext, mode: G.input.mode }));
         } catch (e) {}
       }
-    }
-    if (now - G.rttLastPingAt > 2000) {
-      G.rttLastPingAt = now;
-      try { G.ws.send(JSON.stringify({ t: "ping", ts: now })); } catch (e) {}
     }
     if (now - G.rttTimer > 500) {
       G.rttTimer = now;
