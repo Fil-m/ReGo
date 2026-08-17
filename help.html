@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧬 SYNERGY — довідка гравця</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧬</text></svg>">
+<style>
+  :root {
+    --bg: #0a0f18; --bg2: #101827; --card: #131d2e; --card2: #0d1522;
+    --line: #22304a; --txt: #dfe6f3; --dim: #8890b0; --acc: #4ec9ff;
+    --h2o: #4ec9ff; --co2: #c8cdd7; --nh3: #7ef0a0; --ch4: #ffd166;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: radial-gradient(1200px 600px at 70% -10%, #14233c 0%, var(--bg) 55%);
+    color: var(--txt); font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh; padding: 28px 16px 80px; line-height: 1.55;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 34px; }
+  header h1 { font-size: 34px; letter-spacing: .5px; }
+  header .sub { color: var(--dim); margin-top: 6px; font-size: 15px; }
+  .play {
+    display: inline-block; margin-top: 16px; padding: 12px 30px; border-radius: 12px;
+    background: linear-gradient(135deg, #2fd86b, #1fa854); color: #04120a; font-weight: 800;
+    font-size: 17px; text-decoration: none; box-shadow: 0 6px 24px rgba(47,216,107,.35);
+    transition: transform .15s;
+  }
+  .play:hover { transform: translateY(-2px); }
+  .play.back { background: linear-gradient(135deg, #3b4a63, #26344c); color: #dce6f5; box-shadow: none; margin-left: 10px; }
+
+  section { margin-bottom: 30px; }
+  .card {
+    background: linear-gradient(180deg, var(--card), var(--card2));
+    border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px;
+  }
+  h2 { font-size: 22px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  h3 { font-size: 17px; margin: 18px 0 8px; color: #fff; }
+  p, li { color: #c6cfe0; font-size: 15px; }
+  ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+  b { color: #fff; }
+  .dim { color: var(--dim); font-size: 13.5px; }
+
+  /* --- element legend --- */
+  .legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .el {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+    background: var(--card2); border: 1px solid var(--line); border-radius: 10px;
+  }
+  .sw { width: 26px; height: 26px; border-radius: 7px; flex: none; box-shadow: inset 0 -6px 0 rgba(0,0,0,.28); }
+  .el b { font-size: 16px; }
+  .el .zn { color: var(--dim); font-size: 12px; }
+
+  /* --- molecule grid cells --- */
+  .mol-grid {
+    display: inline-grid; gap: 8px; padding: 14px; border-radius: 14px;
+    background: #0a111d; border: 1px solid #1b2a44;
+  }
+  .mg-cell {
+    width: 56px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 22px; color: #0a0f18; position: relative;
+    box-shadow: inset 0 -12px 0 rgba(0,0,0,.28), 0 8px 0 rgba(0,0,0,.32);
+    text-shadow: none;
+  }
+  .mg-cell .el-tag {
+    position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+    background: rgba(8,12,20,.85); color: #fff; font-size: 11px; font-weight: 700;
+    padding: 1px 7px; border-radius: 8px; border: 1.5px solid rgba(78,201,255,.6);
+    white-space: nowrap; letter-spacing: .5px;
+  }
+  .mg-h { height: 34px; background: #7a6a55; }
+  .mg-c { height: 46px; background: #3fb6d8; }
+  .mg-n { height: 58px; background: #3fe08a; }
+  .mg-o { height: 70px; background: #a84fd8; }
+  .mg-bond { background: rgba(78,201,255,.08); border: 1.5px dashed rgba(78,201,255,.35); border-radius: 10px; }
+
+  /* molecule showcase cards */
+  .mols { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 16px; }
+  .mol-card { background: var(--card2); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .mol-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .mol-name { font-size: 19px; font-weight: 800; }
+  .mol-formula { font-size: 15px; color: var(--dim); }
+  .mol-body { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .mol-info { flex: 1; min-width: 170px; }
+  .stat { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 14px; }
+  .stat .lbl { color: var(--dim); width: 120px; flex: none; }
+  .bars { display: inline-flex; gap: 4px; }
+  .bars i { width: 14px; height: 12px; border-radius: 3px; background: #26334d; }
+  .bars i.on { background: var(--acc); }
+  .bars i.on.warm { background: #ffd166; }
+  .bars i.on.hot { background: #ff5c8a; }
+  .glow { border-radius: 12px; padding: 4px; }
+  .glow.h2o { box-shadow: 0 0 26px rgba(78,201,255,.35); }
+  .glow.co2 { box-shadow: 0 0 26px rgba(200,205,215,.3); }
+  .glow.nh3 { box-shadow: 0 0 26px rgba(126,240,160,.35); }
+  .glow.ch4 { box-shadow: 0 0 26px rgba(255,209,102,.35); }
+
+  /* compact molecule grids (recipes) */
+  .mol-grid.sm { gap: 5px; padding: 10px; }
+  .mg-cell.sm { width: 40px; font-size: 16px; border-radius: 6px; }
+  .mg-h.sm { height: 26px; }
+  .mg-c.sm { height: 33px; }
+  .mg-n.sm { height: 40px; }
+  .mg-o.sm { height: 47px; }
+  .el-tag.sm { top: -11px; font-size: 9.5px; padding: 0 5px; }
+  .mg-hit { outline: 2.5px solid #ffd166; outline-offset: -2px; box-shadow: 0 0 14px rgba(255,209,102,.55); z-index: 2; }
+  .mg-hit.o { outline-color: #ff5c8a; box-shadow: 0 0 14px rgba(255,92,138,.55); }
+
+  /* recipes layout */
+  .recipe {
+    background: var(--card2); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px 18px; margin-top: 14px;
+  }
+  .recipe.warn { border-color: rgba(255,92,138,.4); background: linear-gradient(180deg, rgba(255,92,138,.07), var(--card2)); }
+  .rcp-head { font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .rcp-head .dim { font-weight: 400; }
+  .rcp-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+  .rcp-step { text-align: center; }
+  .rcp-lbl { font-size: 12.5px; color: var(--dim); margin-bottom: 8px; max-width: 150px; line-height: 1.35; }
+  .rcp-lbl b { color: #fff; }
+  .rcp-arrow { font-size: 22px; color: var(--acc); font-weight: 900; padding: 0 2px; }
+  .rcp-boom { font-size: 44px; line-height: 1; padding: 14px 6px; }
+  .rcp-note { font-size: 13.5px; color: #b9c3d6; margin-top: 10px; }
+  .mol-grid.lg { gap: 6px; padding: 12px; }
+  .mg-cell.lg { width: 52px; font-size: 20px; border-radius: 8px; }
+  .mg-h.lg { height: 32px; }
+  .mg-c.lg { height: 42px; }
+  .mg-n.lg { height: 52px; }
+  .mg-o.lg { height: 62px; }
+  .el-tag.lg { top: -13px; font-size: 11px; padding: 1px 7px; }
+  .mg-center { outline: 2.5px solid rgba(78,201,255,.8); outline-offset: -2px; box-shadow: 0 0 16px rgba(78,201,255,.5); z-index: 2; }
+  .merge-mark { color: var(--dim); font-size: 13px; margin-top: 8px; }
+  .merge-mark b { color: var(--acc); }
+
+  /* strength table */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+  th { color: var(--dim); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: .5px; }
+  td b { color: #fff; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .pill.h2o { background: rgba(78,201,255,.15); color: var(--h2o); }
+  .pill.co2 { background: rgba(200,205,215,.15); color: var(--co2); }
+  .pill.nh3 { background: rgba(126,240,160,.15); color: var(--nh3); }
+  .pill.ch4 { background: rgba(255,209,102,.15); color: var(--ch4); }
+
+  .tips { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+  .tip { background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .tip h4 { font-size: 15px; margin-bottom: 6px; color: #fff; }
+  .tip p { font-size: 13.5px; color: #b9c3d6; }
+
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .ctl { background: var(--card2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+  .ctl b { color: var(--acc); }
+
+  footer { text-align: center; color: #5a6880; font-size: 13px; margin-top: 40px; }
+  @media (max-width: 640px) {
+    .mols { grid-template-columns: 1fr; }
+    .mol-body { justify-content: center; }
+    header h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🧬 SYNERGY: PHASE SHIFT</h1>
+    <div class="sub">Довідка гравця · хімія ландшафту · молекули · міцність</div>
+    <div>
+      <a class="play" href="/">▶ Грати</a>
+      <a class="play back" href="/#rulesOpen">📜 Правила в грі</a>
+    </div>
+  </header>
+
+  <!-- ============ META ============ -->
+  <section class="card">
+    <h2>🎯 Мета гри</h2>
+    <p>Десь <b>вгорі</b> з'являється портал-вихід (🏆 блакитний стовп на висоті 14–26 м). <b>Хто перший досягне його — переміг</b>, раунд завершується і починається новий з новим виходом. Щоб дістатись — будуй вежі, качай ⚡ енергію і літай.</p>
+    <ul>
+      <li>⛰ Клітинки ростуть у вежі: чим вищий ранг Z1–Z10 — тим вища (кожен ранг +0.8 м).</li>
+      <li>🦘 На вежу можна тільки <b>застрибнути</b> — кроком не зайдеш. Тримай стрибок = політ за рахунок ⚡.</li>
+      <li>🔗 Сполуки <b>фіксують</b> ландшафт: розбирати їх важче, ніж звичайні вежі.</li>
+    </ul>
+  </section>
+
+  <!-- ============ ELEMENTS ============ -->
+  <section class="card">
+    <h2>🧪 Елементи: ранг = атом</h2>
+    <p>Висота стовпця показує елемент. Над кожною клітинкою-атомом видно її символ (H, C, N, O…). Перші п'ять — робочі (утворюють молекули), важчі Z6+ — захисні та «цінні».</p>
+    <div class="legend" style="margin-top:12px">
+      <div class="el"><span class="sw" style="background:#8a8f98"></span><div><b>Z1</b><br><span class="zn">пил · основа</span></div></div>
+      <div class="el"><span class="sw" style="background:#7a6a55"></span><div><b>Z2 H</b><br><span class="zn">водень · найнижчий</span></div></div>
+      <div class="el"><span class="sw" style="background:#3fb6d8"></span><div><b>Z3 C</b><br><span class="zn">вуглець</span></div></div>
+      <div class="el"><span class="sw" style="background:#3fe08a"></span><div><b>Z4 N</b><br><span class="zn">азот</span></div></div>
+      <div class="el"><span class="sw" style="background:#a84fd8"></span><div><b>Z5 O</b><br><span class="zn">кисень · шлак-міна</span></div></div>
+      <div class="el"><span class="sw" style="background:#ffe9a8"></span><div><b>Z6 F</b><br><span class="zn">флуор · поле</span></div></div>
+      <div class="el"><span class="sw" style="background:#ff9e5e"></span><div><b>Z7 Ne</b><br><span class="zn">неон</span></div></div>
+      <div class="el"><span class="sw" style="background:#b388ff"></span><div><b>Z8 Na</b><br><span class="zn">натрій</span></div></div>
+      <div class="el"><span class="sw" style="background:#ff5c8a"></span><div><b>Z9 Mg</b><br><span class="zn">магній</span></div></div>
+      <div class="el"><span class="sw" style="background:#ffffff"></span><div><b>Z10 Al</b><br><span class="zn">алюміній</span></div></div>
+    </div>
+    <p class="dim" style="margin-top:12px">Z5 = шлак: у складі сполуки стабільний, але вільний вибухає міною (радіус 3). Z6+ — захисне поле, що ранить аномалій.</p>
+  </section>
+
+  <!-- ============ MOLECULES ============ -->
+  <section class="card">
+    <h2>🔗 Молекули: як утворюються</h2>
+    <p>Коли навколо <b>центрального атома</b> (C, N або O) виростають сусіди <b>у точній формі</b> — утворюється сполука. Сервер перевіряє форми раз на секунду. Сполука <b>фіксується</b>: щоб розібрати, спершу треба зруйнувати <b>силу зв'язку</b> — інакше ранг не падає.</p>
+    <div class="tips" style="margin-top:14px">
+      <div class="tip"><h4>⚙️ Як зібрати</h4><p>Побудуй центр (C/N/O) і розстав навколо нього H (або O для CO₂) у формі нижче. Форми строгі: зайвий сусід ламає патерн.</p></div>
+      <div class="tip"><h4>🔒 Як тримається</h4><p>Зв'язок має <b>силу</b> (bond). 💨/⚔️ викачують її (+1⚡ за тік); поки bond &gt; 0 — ранг клітинки не змінюється.</p></div>
+      <div class="tip"><h4>🧱 Шари речовини</h4><p>Дві злиті сполуки одного типу — <b>шар</b>: міцність ×1.5. Ландшафт, що «зрісся», розбирати найважче.</p></div>
+    </div>
+
+    <h3 style="margin-top:22px">📐 Форми та міцність</h3>
+    <div class="mols">
+      <!-- H2O -->
+      <div class="mol-card">
+        <div class="mol-head">
+          <div><div class="mol-name" style="color:var(--h2o)">Вода</div><div class="mol-formula">H₂O · O + 2×H під кутом</div></div>
+          <span class="pill h2o">сила 30</span>
+        </div>
+        <div class="mol-body">
+          <div class="glow h2o"><div class="mol-grid" style="grid-template-columns:repeat(3,56px)">
+            <div></div><div></div><div></div>
+            <div class="mg-cell mg-h"><span class="el-tag">H</span></div><div class="mg-cell mg-o"><span class="el-tag">O</span></div><div></div>
+            <div></div><div class="mg-cell mg-h"><span class="el-tag">H</span></div><div></div>
+          </div></div>
+          <div class="mol-info">
+            <div class="stat"><span class="lbl">Міцність</span><span class="bars"><i class="on"></i><i class="on"></i><i></i><i></i></span><span style="color:var(--dim)">30</span></div>
+            <div class="stat"><span class="lbl">Розбір 💨</span><span>~0.5 с викачування</span></div>
+            <div class="stat"><span class="lbl">Укус аномалії</span><span>3 тиснення ≈ 5 с</span></div>
+            <div class="stat"><span class="lbl">Колір у грі</span><span style="color:var(--h2o)">■ блакитний</span></div>
+            <div class="stat"><span class="lbl">Висота ⚛</span><span>4.7–6.4 м над землею</span></div>
+          </div>
+        </div>
+      </div>
+      <!-- CO2 -->
+      <div class="mol-card">
+        <div class="mol-head">
+          <div><div class="mol-name" style="color:var(--co2)">Вуглекислий газ</div><div class="mol-formula">CO₂ · C + 2×O навпроти</div></div>
+          <span class="pill co2">сила 40</span>
+        </div>
+        <div class="mol-body">
+          <div class="glow co2"><div class="mol-grid" style="grid-template-columns:repeat(3,56px)">
+            <div></div><div></div><div></div>
+            <div class="mg-cell mg-o"><span class="el-tag">O</span></div><div class="mg-cell mg-c"><span class="el-tag">C</span></div><div class="mg-cell mg-o"><span class="el-tag">O</span></div>
+            <div></div><div></div><div></div>
+          </div></div>
+          <div class="mol-info">
+            <div class="stat"><span class="lbl">Міцність</span><span class="bars"><i class="on warm"></i><i class="on warm"></i><i></i><i></i></span><span style="color:var(--dim)">40</span></div>
+            <div class="stat"><span class="lbl">Розбір 💨</span><span>~0.7 с викачування</span></div>
+            <div class="stat"><span class="lbl">Укус аномалії</span><span>4 тиснення ≈ 7 с</span></div>
+            <div class="stat"><span class="lbl">Колір у грі</span><span style="color:var(--co2)">■ сірий</span></div>
+            <div class="stat"><span class="lbl">Висота ⚛</span><span>4.7–6.4 м над землею</span></div>
+          </div>
+        </div>
+      </div>
+      <!-- NH3 -->
+      <div class="mol-card">
+        <div class="mol-head">
+          <div><div class="mol-name" style="color:var(--nh3)">Аміак</div><div class="mol-formula">NH₃ · N + 3×H</div></div>
+          <span class="pill nh3">сила 50</span>
+        </div>
+        <div class="mol-body">
+          <div class="glow nh3"><div class="mol-grid" style="grid-template-columns:repeat(3,56px)">
+            <div></div><div class="mg-cell mg-h"><span class="el-tag">H</span></div><div></div>
+            <div class="mg-cell mg-h"><span class="el-tag">H</span></div><div class="mg-cell mg-n"><span class="el-tag">N</span></div><div class="mg-cell mg-h"><span class="el-tag">H</span></div>
+            <div></div><div></div><div></div>
+          </div></div>
+          <div class="mol-info">
+            <div class="stat"><span class="lbl">Міцність</span><span class="bars"><i class="on warm"></i><i class="on warm"></i><i class="on warm"></i><i></i></span><span style="color:var(--dim)">50</span></div>
+            <div class="stat"><span class="lbl">Розбір 💨</span><span>~0.9 с викачування</span></div>
+            <div class="stat"><span class="lbl">Укус аномалії</span><span>5 тиснень ≈ 8.5 с</span></div>
+            <div class="stat"><span class="lbl">Колір у грі</span><span style="color:var(--nh3)">■ зелений</span></div>
+            <div class="stat"><span class="lbl">Висота ⚛</span><span>3.9–5.6 м над землею</span></div>
+          </div>
+        </div>
+      </div>
+      <!-- CH4 -->
+      <div class="mol-card">
+        <div class="mol-head">
+          <div><div class="mol-name" style="color:var(--ch4)">Метан</div><div class="mol-formula">CH₄ · C + 4×H</div></div>
+          <span class="pill ch4">сила 60</span>
+        </div>
+        <div class="mol-body">
+          <div class="glow ch4"><div class="mol-grid" style="grid-template-columns:repeat(3,56px)">
+            <div></div><div class="mg-cell mg-h"><span class="el-tag">H</span></div><div></div>
+            <div class="mg-cell mg-h"><span class="el-tag">H</span></div><div class="mg-cell mg-c"><span class="el-tag">C</span></div><div class="mg-cell mg-h"><span class="el-tag">H</span></div>
+            <div></div><div class="mg-cell mg-h"><span class="el-tag">H</span></div><div></div>
+          </div></div>
+          <div class="mol-info">
+            <div class="stat"><span class="lbl">Міцність</span><span class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i></span><span style="color:var(--dim)">60</span></div>
+            <div class="stat"><span class="lbl">Розбір 💨</span><span>~1.1 с викачування</span></div>
+            <div class="stat"><span class="lbl">Укус аномалії</span><span>6 тиснень ≈ 10 с</span></div>
+            <div class="stat"><span class="lbl">Колір у грі</span><span style="color:var(--ch4)">■ жовтий</span></div>
+            <div class="stat"><span class="lbl">Висота ⚛</span><span>3.1–4.8 м над землею</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STRENGTH ============ -->
+  <section class="card">
+    <h2>📊 Міцність сполук</h2>
+    <table>
+      <tr><th>Сполука</th><th>Формула</th><th>Сила зв'язку</th><th>У грі (індикатор)</th><th>Розбір 💨</th><th>Шар ×1.5</th><th>Висота ⚛ (левітація)</th></tr>
+      <tr><td><b style="color:var(--h2o)">Вода</b></td><td>H₂O</td><td>30</td><td>синя світність</td><td>~0.5 с</td><td>45</td><td>4.7–6.4 м</td></tr>
+      <tr><td><b style="color:var(--co2)">Вуглекислий газ</b></td><td>CO₂</td><td>40</td><td>сіра світність</td><td>~0.7 с</td><td>60</td><td>4.7–6.4 м</td></tr>
+      <tr><td><b style="color:var(--nh3)">Аміак</b></td><td>NH₃</td><td>50</td><td>зелена світність</td><td>~0.9 с</td><td>75</td><td>3.9–5.6 м</td></tr>
+      <tr><td><b style="color:var(--ch4)">Метан</b></td><td>CH₄</td><td>60</td><td>жовта світність</td><td>~1.1 с</td><td>90</td><td>3.1–4.8 м</td></tr>
+    </table>
+    <p class="dim" style="margin-top:10px">Правило: <b>більше атомів у формулі — міцніший зв'язок</b>. Сусідні сполуки одного типу зливаються в шар (2+ центри) — міцність ×1.5. Розірваний ентропією зв'язок <b>не відновлюється сам</b>: щоб «полагодити» молекулу, треба перебудувати клітинку (синтез).</p>
+    <div class="tips" style="margin-top:14px">
+      <div class="tip"><h4>🔝 Найвищі</h4><p><b style="color:var(--h2o)">Вода</b> та <b style="color:var(--co2)">CO₂</b> левітують найвище (4.7–6.4 м) — вони містять <b>кисень O (Z5)</b>, найвищий робочий атом. Ідеальні сходинки до порталу.</p></div>
+      <div class="tip"><h4>💪 Найміцніші</h4><p><b style="color:var(--ch4)">Метан</b> (сила 60) тримається найдовше: ~1.1 с викачування, 10 с під тиском аномалії. Найслабша — <b style="color:var(--h2o)">вода</b> (30).</p></div>
+      <div class="tip"><h4>🧗 Що вище — те й сходинка</h4><p>Висота об'єкта = висота його <b>найвищого атома</b> + 1.5–3.2 м. Збирай сполуки з O, щоб отримати високі платформи, і з 4+ атомів, щоб вони не розвалювались.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ SPATIAL MOLECULES ============ -->
+  <section class="card">
+    <h2>⚛ Просторові молекули</h2>
+    <p>Зібрана сполука — це не лише вежа на сітці: вона стає <b>3D-об'єктом</b>, атом-кулею з електронними орбіталями, що <b>левітує над вежею-основою</b> на випадковій висоті (1.5–3.2 м над вершиною).</p>
+    <div class="tips" style="margin-top:14px">
+      <div class="tip"><h4>🦘 Платформа в повітрі</h4><p>На молекулу можна <b>застрибнути</b>: залізь на вежу-основу, а з неї — на атом-кулю. Це сходинка до виходу.</p></div>
+      <div class="tip"><h4>🧲 Притягання</h4><p>Молекули в радіусі 7 м <b>притягуються одна до одної</b> і злипаються в кластери-мости — цілі форми з кількох куль, по яких можна ходити.</p></div>
+      <div class="tip"><h4>⚛ Прокачка</h4><p>Наведи 🫳 (ЛКМ, тримай) на молекулу — <b>качаєш її атоми</b> (раз на 0.5 с). Валідна нова форма змінює тип і характеристики. Невалідна — <b>нестабільність</b>.</p></div>
+      <div class="tip"><h4>💥 Вибух</h4><p>Нестабільна молекула блимає і <b>вибухає</b> (радіус 3): руйнує клітини навколо, ранить аномалій і гравців поруч. Качай обережно!</p></div>
+    </div>
+    <p class="dim" style="margin-top:12px">Прокачка змінює ранги атомів на сітці — молекула перетворюється: наприклад, качай атоми H₂O, щоб отримати NH₃ або CH₄ (міцніші), або розхитай форму — і спостерігай вибух.</p>
+  </section>
+
+  <!-- ============ PUMP RECIPES ============ -->
+  <section class="card">
+    <h2>🔧 Рецепти перетворення (прокачка 🫳)</h2>
+    <p>Тримай 🫳 на молекулі — сервер <b>качає атом</b> (раз на 0.5 с): ранг найближчого до тебе атома росте <b>H→C→N→O</b>. Прокачка <b>не додає нові атоми</b> — вона лише піднімає ранги наявних, тому перетворення можливі тільки між формами з однаковою кількістю клітин. Ось <b>єдині валідні ланцюжки</b> (перевірено на серверній логіці):</p>
+
+    <!-- CH4 -> NH3 -->
+    <div class="recipe">
+      <div class="rcp-head">Метан CH₄ <span class="pill ch4">сила 60</span> <span class="rcp-arrow" style="font-size:16px">→</span> Аміак NH₃ <span class="pill nh3">сила 50</span></div>
+      <div class="rcp-row">
+        <div class="rcp-step">
+          <div class="rcp-lbl">Крок 1 · качай <b>центр C→N</b> (жовте)</div>
+          <div class="mol-grid sm" style="grid-template-columns:repeat(3,40px)">
+            <div></div><div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div></div>
+            <div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div class="mg-cell sm mg-c mg-hit"><span class="el-tag sm">C</span></div><div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div>
+            <div></div><div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div></div>
+          </div>
+        </div>
+        <div class="rcp-arrow">→</div>
+        <div class="rcp-step">
+          <div class="rcp-lbl">Крок 2 · качай <b>один H→C</b> (рожеве)</div>
+          <div class="mol-grid sm" style="grid-template-columns:repeat(3,40px)">
+            <div></div><div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div></div>
+            <div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div class="mg-cell sm mg-n"><span class="el-tag sm">N</span></div><div class="mg-cell sm mg-h mg-hit o"><span class="el-tag sm">H</span></div>
+            <div></div><div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div></div>
+          </div>
+        </div>
+        <div class="rcp-arrow">=</div>
+        <div class="rcp-step">
+          <div class="rcp-lbl">Аміак NH₃ · N + 3×H</div>
+          <div class="mol-grid sm" style="grid-template-columns:repeat(3,40px)">
+            <div></div><div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div></div>
+            <div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div class="mg-cell sm mg-n"><span class="el-tag sm">N</span></div><div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div>
+            <div></div><div></div><div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NH3 -> H2O -->
+    <div class="recipe">
+      <div class="rcp-head">Аміак NH₃ <span class="pill nh3">сила 50</span> <span class="rcp-arrow" style="font-size:16px">→</span> Вода H₂O <span class="pill h2o">сила 30</span></div>
+      <div class="rcp-row">
+        <div class="rcp-step">
+          <div class="rcp-lbl">Крок 1 · качай <b>центр N→O</b> (жовте)</div>
+          <div class="mol-grid sm" style="grid-template-columns:repeat(3,40px)">
+            <div></div><div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div></div>
+            <div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div class="mg-cell sm mg-n mg-hit"><span class="el-tag sm">N</span></div><div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div>
+            <div></div><div></div><div></div>
+          </div>
+        </div>
+        <div class="rcp-arrow">→</div>
+        <div class="rcp-step">
+          <div class="rcp-lbl">Крок 2 · качай <b>один H→C</b> (рожеве)</div>
+          <div class="mol-grid sm" style="grid-template-columns:repeat(3,40px)">
+            <div></div><div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div></div>
+            <div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div class="mg-cell sm mg-o"><span class="el-tag sm">O</span></div><div class="mg-cell sm mg-h mg-hit o"><span class="el-tag sm">H</span></div>
+            <div></div><div></div><div></div>
+          </div>
+        </div>
+        <div class="rcp-arrow">=</div>
+        <div class="rcp-step">
+          <div class="rcp-lbl">Вода H₂O · O + 2×H під кутом</div>
+          <div class="mol-grid sm" style="grid-template-columns:repeat(3,40px)">
+            <div></div><div></div><div></div>
+            <div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div class="mg-cell sm mg-o"><span class="el-tag sm">O</span></div><div></div>
+            <div></div><div class="mg-cell sm mg-h"><span class="el-tag sm">H</span></div><div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- dead ends -->
+    <div class="recipe warn">
+      <div class="rcp-head">💥 Тупики: H₂O і CO₂ не перетворюються</div>
+      <div class="rcp-row">
+        <div class="rcp-step">
+          <div class="rcp-lbl">Вода H₂O · качай <b>будь-що</b> → нестабільна</div>
+          <div class="mol-grid sm" style="grid-template-columns:repeat(3,40px)">
+            <div></div><div></div><div></div>
+            <div class="mg-cell sm mg-h mg-hit o"><span class="el-tag sm">H</span></div><div class="mg-cell sm mg-o mg-hit o"><span class="el-tag sm">O</span></div><div></div>
+            <div></div><div class="mg-cell sm mg-h mg-hit o"><span class="el-tag sm">H</span></div><div></div>
+          </div>
+        </div>
+        <div class="rcp-arrow">→</div>
+        <div class="rcp-step">
+          <div class="rcp-lbl">CO₂ · качай <b>будь-що</b> → нестабільна</div>
+          <div class="mol-grid sm" style="grid-template-columns:repeat(3,40px)">
+            <div></div><div></div><div></div>
+            <div class="mg-cell sm mg-o mg-hit o"><span class="el-tag sm">O</span></div><div class="mg-cell sm mg-c mg-hit o"><span class="el-tag sm">C</span></div><div class="mg-cell sm mg-o mg-hit o"><span class="el-tag sm">O</span></div>
+            <div></div><div></div><div></div>
+          </div>
+        </div>
+        <div class="rcp-arrow">→</div>
+        <div class="rcp-step">
+          <div class="rcp-lbl">Стабільність 100→0 · <b>вибух</b> 💥 (радіус 3)</div>
+          <div class="rcp-boom">💥</div>
+        </div>
+      </div>
+      <p class="rcp-note">Вода і CO₂ — «кінцеві» форми: будь-яка прокачка атома ламає патерн (немає валідного продовження з тією ж кількістю клітин). Кожен «промах» −12 стабільності, при 0 — вибух, що руйнує клітини навколо і ранить гравців.</p>
+    </div>
+  </section>
+
+  <!-- ============ MERGING ============ -->
+  <section class="card">
+    <h2>🧱 Об'єднання молекул: шари та кластери</h2>
+    <p>Молекули <b>не живуть поодинці</b> — вони об'єднуються двома способами: <b>шари</b> на сітці (міцність ×1.5) і <b>кластери</b> 3D-об'єктів (платформи в повітрі).</p>
+
+    <h3 style="margin-top:18px">🧱 Шар речовини: дві однакові сполуки поряд</h3>
+    <p>Коли <b>дві сполуки одного типу</b> стоять так, що їх атоми торкаються (зв'язна область з 2+ центрами) — утворюється <b>шар</b>: міцність кожної клітини ×1.5. Це найстійкіша форма ландшафту — розбирати її найважче.</p>
+    <div class="rcp-row" style="margin-top:12px">
+      <div class="rcp-step">
+        <div class="rcp-lbl">Дві Води H₂O поруч — атоми торкаються</div>
+        <div class="mol-grid lg" style="grid-template-columns:repeat(5,52px)">
+          <div></div><div class="mg-cell lg mg-h"><span class="el-tag lg">H</span></div><div></div><div class="mg-cell lg mg-h"><span class="el-tag lg">H</span></div><div></div>
+          <div class="mg-cell lg mg-h"><span class="el-tag lg">H</span></div><div class="mg-cell lg mg-o mg-center"><span class="el-tag lg">O</span></div><div class="mg-cell lg mg-o mg-center"><span class="el-tag lg">O</span></div><div class="mg-cell lg mg-h"><span class="el-tag lg">H</span></div><div></div>
+          <div></div><div></div><div></div><div></div><div></div>
+        </div>
+        <div class="merge-mark">2 центри O · зв'язна область · <b>міцність 30 → 45</b></div>
+      </div>
+      <div class="rcp-arrow">→</div>
+      <div class="rcp-step">
+        <div class="rcp-lbl">Шар ×1.5 — світиться яскравіше, розбирається довше</div>
+        <div class="mol-grid lg" style="grid-template-columns:repeat(5,52px)">
+          <div></div><div class="mg-cell lg mg-h" style="box-shadow:0 0 18px rgba(78,201,255,.55)"><span class="el-tag lg">H</span></div><div></div><div class="mg-cell lg mg-h" style="box-shadow:0 0 18px rgba(78,201,255,.55)"><span class="el-tag lg">H</span></div><div></div>
+          <div class="mg-cell lg mg-h" style="box-shadow:0 0 18px rgba(78,201,255,.55)"><span class="el-tag lg">H</span></div><div class="mg-cell lg mg-o mg-center" style="box-shadow:0 0 22px rgba(78,201,255,.8)"><span class="el-tag lg">O</span></div><div class="mg-cell lg mg-o mg-center" style="box-shadow:0 0 22px rgba(78,201,255,.8)"><span class="el-tag lg">O</span></div><div class="mg-cell lg mg-h" style="box-shadow:0 0 18px rgba(78,201,255,.55)"><span class="el-tag lg">H</span></div><div></div>
+          <div></div><div></div><div></div><div></div><div></div>
+        </div>
+        <div class="merge-mark"><b>сила зв'язку 45</b> · розбір ~0.75 с</div>
+      </div>
+    </div>
+    <p class="rcp-note">Шар може бути більшим: додай третю H₂O поруч — вся область отримає ×1.5. Те саме з CO₂, NH₃, CH₄ — головне, щоб <b>тип співпадав</b> і молекули торкались.</p>
+
+    <h3 style="margin-top:22px">🫧 Кластер: 3D-об'єкти притягуються</h3>
+    <div class="tips">
+      <div class="tip"><h4>🧲 Притягання</h4><p>Левітуючі молекули-об'єкти в радіусі <b>7 м</b> притягуються одна до одної (швидкість 1.4 м/с).</p></div>
+      <div class="tip"><h4>🫧 Злипання</h4><p>Ближче ніж <b>2.6 м</b> — злипаються в кластер: кілька куль разом = <b>платформа в повітрі</b>, по якій можна ходити.</p></div>
+      <div class="tip"><h4>🦘 Використання</h4><p>Збери 2–3 молекули поряд — отримаєш міст-сходинку до порталу. Високі (H₂O, CO₂) + злиплі = найкращий трамплін.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ ANOMALIES ============ -->
+  <section class="card">
+    <h2>👾 Аномалії: тиск і розпад</h2>
+    <ul>
+      <li>⚖️ З'являються за балансом: <b>1 аномалія на 10 молекул</b> у світі (але <b>завжди щонайменше 1</b>, якщо є хоч одна молекула).</li>
+      <li>⏱ Респавн кожні <b>30 секунд</b> з країв карти.</li>
+      <li>🚫 <b>Не заходять у клітини</b> — зупиняються на сусідній вільній і <b>тиснуть</b> на атоми поруч.</li>
+      <li>💥 Тиск = зростання ентропії → <b>спонтанний розпад</b>: спершу рвуться зв'язки молекул (див. таблицю міцності), потім падає ранг атомів.</li>
+      <li>🫳 Знищуй дією (тримай на аномалії) — +20 XP.</li>
+      <li>🛡 Z6+ (захисне поле) і вільний шлак Z5 ранять аномалій, що стоять поруч.</li>
+    </ul>
+  </section>
+
+  <!-- ============ GAMEPLAY ============ -->
+  <section class="card">
+    <h2>⚡ Ресурси та можливості</h2>
+    <div class="tips">
+      <div class="tip"><h4>⚡ Енергія</h4><p>💨 викачування веж (ранг 2+) дає +ранг енергії; війна ⚔️ — вдвічі менше. Заряд видно на кільці навколо кнопки стрибка.</p></div>
+      <div class="tip"><h4>🦘 Політ</h4><p>Тримай стрибок — летиш, ⚡ тане. 100⚡ ≈ 3 с підйому ≈ 28 м. Без заряду — звичайний стрибок 1.6 м.</p></div>
+      <div class="tip"><h4>🕊 Мир / ⚔️ Війна</h4><p>Q перемикає. Мир: ЛКМ будує, ⚛ синтез. Війна: постріли руйнують вежі, вбивають жителів і гравців (+фраг).</p></div>
+      <div class="tip"><h4>⬆️ XP і рівні</h4><p>⚛ синтез +12–30 · 👾 аномалії +20 · 🎯 епохи +35–80 · 🏆 вихід +150. Рівень: +12% будівництва, +5 HP, товщий промінь.</p></div>
+      <div class="tip"><h4>🏆 Вихід</h4><p>Перший, хто торкнеться порталу — переміг; за 6 с новий раунд: світ з нуля, рівні гравців зберігаються.</p></div>
+      <div class="tip"><h4>👥 Боти-жителі</h4><p>Збирають матерію, будують вежі, тікають від агресивних гравців. Хаос-боти руйнують. Теж підкоряються хімії.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ CONTROLS ============ -->
+  <section class="card">
+    <h2>🎮 Керування</h2>
+    <div class="controls">
+      <div class="ctl"><b>WASD</b> — рух</div>
+      <div class="ctl"><b>Миша</b> — огляд</div>
+      <div class="ctl"><b>ЛКМ 🫳</b> — будувати / атакувати</div>
+      <div class="ctl"><b>ПКМ 💨</b> — викачувати ⚡</div>
+      <div class="ctl"><b>Q</b> — мир / війна</div>
+      <div class="ctl"><b>Space / ⬆ (тримай)</b> — політ</div>
+      <div class="ctl"><b>📱 Телефон</b> — джойстик зліва, огляд справа; кнопки 🫳💨⬆</div>
+    </div>
+  </section>
+
+  <footer>SYNERGY: PHASE SHIFT · довідка гравця · оновлено серпень 2026</footer>
+</div>
+</body>
+</html>

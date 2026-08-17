@@ -3,23 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230b0e14'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%23ffd166'>⚔</text></svg>">
-<title>3D Shooter Proto</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230b0e14'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%23ffd166'>🧬</text></svg>">
+<title>SYNERGY: PHASE SHIFT 3D</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { width:100%; height:100%; overflow:hidden; background:#0b0e14; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:#e8ecf4; touch-action:none; user-select:none; -webkit-user-select:none; }
   canvas { display:block; position:fixed; inset:0; }
-  #menu { position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; background:radial-gradient(circle at 50% 30%, #182030 0%, #0b0e14 70%); padding:20px; }
+  #menu { position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; background:radial-gradient(circle at 50% 30%, #182030 0%, #0b0e14 70%); padding:20px; overflow-y:auto; }
   #menu.hidden { display:none; }
-  #menu h1 { font-size:34px; letter-spacing:1px; margin-bottom:6px; }
-  #menu .sub { color:#8a93a6; font-size:14px; margin-bottom:10px; text-align:center; }
+  #menu h1 { font-size:30px; letter-spacing:1px; margin-bottom:2px; text-align:center; }
+  #menu h1 span { color:#3fb6d8; }
+  #menu .sub { color:#8a93a6; font-size:13.5px; margin-bottom:8px; text-align:center; max-width:480px; line-height:1.5; }
   .inp { width:min(320px, 90vw); padding:12px 16px; border-radius:10px; border:1px solid #2a3448; background:#141b29; color:#e8ecf4; font-size:16px; outline:none; text-align:center; }
   .inp:focus { border-color:#4f8cff; }
-  .btn { width:min(320px, 90vw); padding:14px; border-radius:10px; border:none; background:#2f6bff; color:#fff; font-size:17px; font-weight:600; cursor:pointer; }
+  .btn { width:min(320px, 90vw); padding:13px; border-radius:10px; border:none; background:#2f6bff; color:#fff; font-size:16px; font-weight:600; cursor:pointer; }
   .btn:active { transform:scale(0.98); }
   .btn.gray { background:#232c40; }
   .btn.green { background:#1faa4f; }
+  .btn.warn { background:#b8652f; }
   .btn:disabled { opacity:0.5; }
+  .row { display:flex; gap:8px; width:min(320px,90vw); }
+  .row .btn { flex:1; width:auto; }
   #linkBox { width:min(320px, 90vw); background:#141b29; border:1px solid #2a3448; border-radius:10px; padding:10px; font-size:12px; word-break:break-all; color:#9fb2d8; text-align:center; }
   #qrBox { display:none; flex-direction:column; align-items:center; gap:6px; background:#fff; padding:14px; border-radius:12px; }
   #qrBox canvas, #qrBox img { display:block; border-radius:6px; }
@@ -28,22 +32,57 @@
   #qrOverlayBox { background:#fff; padding:14px; border-radius:12px; }
   #qrOverlayBox canvas, #qrOverlayBox img { display:block; border-radius:6px; }
   #qrOverlayCode { font-size:30px; font-weight:800; color:#ffd166; letter-spacing:6px; }
-  .row { display:flex; gap:8px; width:min(320px,90vw); }
-  .row .btn { flex:1; width:auto; }
+  /* rules modal — завжди доступна */
+  #rules { position:fixed; inset:0; z-index:100; display:none; flex-direction:column; align-items:center; justify-content:center; background:rgba(6,9,14,0.85); backdrop-filter:blur(4px); padding:14px; }
+  #rules.open { display:flex; }
+  .rulesbox { background:#141a26; border:1px solid #3fb6d8; border-radius:14px; padding:20px 22px; max-width:540px; width:100%; max-height:88vh; overflow-y:auto; box-shadow:0 10px 50px rgba(0,0,0,.6); }
+  .rulesbox h2 { margin-bottom:10px; font-size:18px; color:#3fb6d8; }
+  .rulesbox h3 { font-size:13px; color:#ffd166; margin:12px 0 5px; text-transform:uppercase; letter-spacing:.5px; }
+  .rulesbox p { font-size:13px; line-height:1.6; margin-bottom:8px; color:#dfe6f3; }
+  .rulesbox b { color:#fff; }
+  .rulesbox code { background:#1b2333; border:1px solid #263049; border-radius:4px; padding:1px 5px; font-size:12px; }
+  .rulesbox .legend { display:flex; gap:8px; flex-wrap:wrap; font-size:11px; color:#8a94a8; margin:8px 0; }
+  .rulesbox .legend .it { display:flex; align-items:center; gap:4px; }
+  .rulesbox .sw { width:10px; height:10px; border-radius:3px; display:inline-block; }
+  .rulesbox button { width:100%; margin-top:10px; padding:12px; font-size:15px; background:#3fb6d8; color:#06121a; font-weight:700; border:none; border-radius:8px; cursor:pointer; }
   #status { position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:20; background:rgba(10,14,22,0.75); padding:5px 12px; border-radius:20px; font-size:12px; color:#9fb2d8; pointer-events:none; }
   #hud { position:fixed; inset:0; z-index:10; pointer-events:none; display:none; }
   #cross { position:absolute; top:50%; left:50%; width:14px; height:14px; transform:translate(-50%,-50%); }
-  #cross::before, #cross::after { content:""; position:absolute; background:#e8ecf4; }
+  #cross::before, #cross::after { content:""; position:absolute; background:#7ef0a0; box-shadow:0 0 6px rgba(126,240,160,.8); }
+  body.war #cross::before, body.war #cross::after { background:#ff6b6b; box-shadow:0 0 6px rgba(255,107,107,.8); }
   #cross::before { left:6px; top:0; width:2px; height:14px; }
   #cross::after { top:6px; left:0; height:2px; width:14px; }
-  #hpWrap { position:absolute; top:16px; left:16px; width:min(220px, 40vw); }
-  #hpLabel { font-size:12px; color:#8a93a6; margin-bottom:4px; }
-  #hpBar { height:12px; border-radius:6px; background:#232c40; overflow:hidden; }
+  #actHint { position:absolute; top:calc(50% + 22px); left:50%; transform:translateX(-50%); font-size:12px; font-weight:700; color:#7ef0a0; background:rgba(10,14,22,0.75); border:1px solid rgba(126,240,160,.5); border-radius:12px; padding:3px 10px; display:none; white-space:nowrap; }
+  #actHint.far { color:#ffb84d; border-color:#ffb84d; animation:farblink .6s infinite alternate; }
+  @keyframes farblink { from {opacity:.55;} to {opacity:1;} }
+  #hpWrap { position:absolute; top:16px; left:16px; width:min(200px, 36vw); }
+  #hpLabel { font-size:11px; color:#8a93a6; margin-bottom:3px; }
+  #hpBar { height:11px; border-radius:6px; background:#232c40; overflow:hidden; }
   #hpFill { height:100%; width:100%; background:#2fd86b; border-radius:6px; transition:width 0.2s; }
-  #frags { position:absolute; top:14px; right:16px; font-size:26px; font-weight:700; color:#ffd166; text-shadow:0 2px 8px rgba(0,0,0,0.6); }
-  #frags small { font-size:12px; color:#8a93a6; font-weight:400; margin-right:6px; }
-  #killfeed { position:absolute; top:52px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:4px; align-items:center; }
+  #xpWrap { position:absolute; top:52px; left:16px; width:min(200px, 36vw); }
+  #xpLabel { font-size:10px; color:#8a93a6; margin-bottom:2px; }
+  #xpBar { height:6px; border-radius:3px; background:#232c40; overflow:hidden; }
+  #xpFill { height:100%; width:0%; background:#ffd166; border-radius:3px; transition:width 0.3s; }
+  #goalHint { position:absolute; top:calc(50% + 22px); left:50%; transform:translateX(-50%); font-size:12px; color:#9fb2d8; background:rgba(10,14,22,0.6); border:1px solid #2a3448; border-radius:12px; padding:3px 10px; display:none; white-space:nowrap; max-width:70vw; overflow:hidden; text-overflow:ellipsis; }
+  .flt { position:fixed; z-index:30; font-size:13px; font-weight:700; pointer-events:none; text-shadow:0 1px 4px rgba(0,0,0,0.9); transition:opacity 0.3s; }
+  #lvlVal { color:#ffd166; }
+  #frags { position:absolute; top:14px; right:16px; font-size:24px; font-weight:700; color:#ffd166; text-shadow:0 2px 8px rgba(0,0,0,0.6); }
+  #frags small { font-size:11px; color:#8a93a6; font-weight:400; margin-right:6px; }
+  #playersBox { position:absolute; top:52px; right:14px; display:flex; flex-direction:column; gap:3px; align-items:flex-end; font-size:12px; }
+  #playersBox .prow { background:rgba(10,14,22,0.65); border:1px solid #232c40; border-radius:8px; padding:2px 8px; color:#9fb2d8; }
+  #playersBox .prow.me { border-color:#3fb6d8; color:#e8ecf4; }
+  #playersBox .prow b { color:#ffd166; }
+  #chips { position:absolute; top:14px; left:50%; transform:translateX(-50%); display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:60vw; }
+  .chip { display:flex; align-items:center; gap:5px; background:rgba(20,26,38,0.8); border:1px solid #2a3448; border-radius:14px; padding:4px 10px; font-size:11.5px; color:#9fb2d8; white-space:nowrap; }
+  .chip b { color:#e8ecf4; font-variant-numeric:tabular-nums; }
+  .chip.warn { border-color:#ff5c5c; }
+  #modeChip { cursor:pointer; pointer-events:auto; font-weight:700; font-size:12.5px; }
+  #modeChip.war { background:rgba(120,30,30,0.85); border-color:#ff5c5c; color:#ffb3b3; }
+  #killfeed { position:absolute; top:64px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:4px; align-items:center; }
   #rtt { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); font-size:12px; color:#8a93a6; background:rgba(10,14,22,0.6); padding:3px 10px; border-radius:12px; pointer-events:none; }
+  #helpBtn { position:absolute; top:14px; right:106px; width:38px; height:38px; border-radius:50%; background:rgba(20,26,38,0.8); border:1px solid #2a3448; color:#9fb2d8; font-size:17px; font-weight:700; cursor:pointer; pointer-events:auto; z-index:25; }
+  #modeBtnD { position:absolute; top:14px; right:152px; width:38px; height:38px; border-radius:50%; background:rgba(24,46,32,0.9); border:2px solid #2fd86b; color:#2fd86b; font-size:17px; font-weight:700; cursor:pointer; pointer-events:auto; z-index:25; box-shadow:0 0 12px rgba(47,216,107,0.35); }
+  #modeBtnD.war { background:rgba(60,20,20,0.9); border-color:#ff5c5c; color:#ff5c5c; box-shadow:0 0 12px rgba(255,92,92,0.4); }
   .kf { background:rgba(10,14,22,0.7); padding:4px 12px; border-radius:6px; font-size:13px; animation:kfout 4s forwards; }
   @keyframes kfout { 0%,70% {opacity:1;} 100% {opacity:0;} }
   #dead { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:10px; background:rgba(120,0,0,0.25); }
@@ -54,29 +93,75 @@
   #hitmark.show { animation:hm 0.18s ease-out; }
   @keyframes hm { 0% {opacity:1; transform:translate(-50%,-50%) rotate(45deg) scale(1.2);} 100% {opacity:0; transform:translate(-50%,-50%) rotate(45deg) scale(0.8);} }
   /* touch controls */
-  #tc { position:fixed; inset:0; z-index:15; display:none; }
+  #tc { position:fixed; inset:0; z-index:9; display:none; }
   body.touch #tc { display:block; }
-  #joyBase { position:absolute; left:30px; bottom:34px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.25); }
+  #joyBase { position:absolute; left:30px; bottom:34px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.25); display:none; }
   #joyKnob { position:absolute; left:50%; top:50%; width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,0.35); transform:translate(-50%,-50%); }
-  #fireBtn { position:absolute; right:28px; bottom:36px; width:92px; height:92px; border-radius:50%; background:rgba(255,80,80,0.28); border:3px solid rgba(255,120,120,0.6); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:rgba(255,255,255,0.85); }
-  #fireBtn.active { background:rgba(255,80,80,0.55); }
-  #jumpBtn { position:absolute; right:140px; bottom:90px; width:58px; height:58px; border-radius:50%; background:rgba(120,180,255,0.25); border:2px solid rgba(150,200,255,0.55); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:rgba(255,255,255,0.85); }
-  #hintTouch { position:absolute; top:14px; left:50%; transform:translateX(-50%); font-size:12px; color:#8a93a6; background:rgba(10,14,22,0.6); padding:4px 12px; border-radius:16px; }
+  #actions { position:absolute; right:16px; bottom:124px; display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
+  .mcbtn { width:58px; height:58px; border-radius:50%; font-size:21px; background:rgba(20,26,38,0.72); border:1px solid #2a3448; color:#e8ecf4; display:flex; align-items:center; justify-content:center; touch-action:none; -webkit-tap-highlight-color:transparent; }
+  .mcbtn.active { background:rgba(63,182,216,0.9); }
+  .mcbtn.actbtn { width:82px; height:82px; font-size:32px; background:rgba(63,182,216,0.35); border-color:#3fb6d8; }
+  .mcbtn.actbtn.war { background:rgba(255,80,80,0.35); border-color:#ff5c5c; }
+  .mcbtn.actbtn.active { background:rgba(63,182,216,0.9); }
+  .mcbtn.actbtn.war.active { background:rgba(255,80,80,0.9); }
+  .mcbtn.extbtn { width:52px; height:52px; font-size:20px; }
+  #jumpWrap { position:absolute; right:12px; bottom:12px; width:100px; height:100px; z-index:20; pointer-events:none; border-radius:50%; background:conic-gradient(#4ec9ff calc(var(--en,0)*1%), rgba(30,46,66,0.45) 0); box-shadow:0 4px 20px rgba(78,201,255,0.35); }
+  #jumpBtn { position:absolute; inset:5px; border-radius:50%; background:rgba(24,36,54,0.92); border:2px solid #4ec9ff; color:#e8ecf4; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:30px; font-weight:700; cursor:pointer; pointer-events:auto; touch-action:none; box-sizing:border-box; }
+  #jumpBtn .charge { font-size:12px; color:#4ec9ff; line-height:1; margin-top:2px; }
+  #jumpBtn.active { background:rgba(78,201,255,0.4); transform:scale(0.94); }
+  #jumpBtn.low { border-color:#7ed0ff; }
+  #jumpBtn.empty { border-color:#2f6b9f; opacity:0.8; }
+  /* layout: scale + edit mode */
+  .mcbtn { transform: scale(var(--btnScale,1)); }
+  #jumpWrap { transform: scale(var(--btnScale,1)); }
+  #joyBase { transform: scale(var(--joyScale,1)); }
+  #joyKnob { transform: translate(-50%,-50%) scale(var(--joyScale,1)); }
+  body.editLayout #tc, body.editLayout #jumpWrap { pointer-events:auto; touch-action:none; }
+  body.editLayout #jumpWrap, body.editLayout #actions .mcbtn { outline:2px dashed #4ec9ff; outline-offset:3px; cursor:grab; }
+  body.editLayout #jumpWrap.dragging, body.editLayout #actions .mcbtn.dragging { outline-color:#ffd166; cursor:grabbing; }
+  #layoutDone { position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:90; display:none; padding:12px 26px; font-size:15px; }
+  body.editLayout #layoutDone { display:block; }
+  #settings .box .row input[type=range] { width:150px; }
+  /* winner banner + confetti */
+  #winBanner { position:absolute; top:26%; left:50%; transform:translate(-50%,-50%) scale(0.6); z-index:50; text-align:center; pointer-events:none; opacity:0; transition:all .4s cubic-bezier(.2,1.6,.4,1); }
+  #winBanner.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
+  #winBanner .t { font-size:34px; font-weight:800; color:#ffd166; text-shadow:0 0 30px rgba(255,209,102,.8), 0 4px 12px rgba(0,0,0,.7); }
+  #winBanner .s { font-size:16px; color:#e8ecf4; margin-top:6px; text-shadow:0 2px 8px rgba(0,0,0,.8); }
+  #confettiLayer { position:absolute; inset:0; z-index:49; pointer-events:none; overflow:hidden; }
+  .confetti { position:absolute; top:-20px; animation-name:confFall; animation-timing-function:linear; animation-iteration-count:1; border-radius:2px; }
+  @keyframes confFall { 0% { top:-20px; opacity:1; } 100% { top:105vh; opacity:0.6; transform:rotate(720deg); } }
+  /* settings menu */
+  #settings { position:fixed; inset:0; z-index:70; display:none; flex-direction:column; align-items:center; background:rgba(6,9,15,0.75); overflow-y:auto; touch-action:pan-y; -webkit-overflow-scrolling:touch; }
+  #settings.open { display:flex; }
+  #settings .box { background:#141a26; border:1px solid #3fb6d8; border-radius:16px; padding:22px 24px; width:min(420px, 92vw); margin:14px auto; flex-shrink:0; box-shadow:0 10px 50px rgba(0,0,0,.6); }
+  #settings h2 { margin:0 0 4px; font-size:19px; color:#e8ecf4; }
+  #settings .sub { font-size:12px; color:#8a93a6; margin-bottom:14px; }
+  #settings .row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:11px; }
+  #settings label { font-size:13px; color:#dfe6f3; flex:1; }
+  #settings input[type=number] { width:86px; background:#0d1420; border:1px solid #2a3448; border-radius:8px; color:#e8ecf4; padding:5px 8px; font-size:13px; text-align:center; }
+  #settings .hint { font-size:11px; color:#6b7689; margin:-6px 0 10px; }
+  #settings .btns { display:flex; gap:10px; margin-top:16px; }
+  #settings .btn { flex:1; }
+  #settings .lock { font-size:12px; color:#ffb84d; margin-bottom:10px; }
+  #settingsBtn { position:absolute; top:14px; right:60px; width:38px; height:38px; border-radius:50%; background:rgba(20,26,38,0.8); border:1px solid #2a3448; color:#9fb2d8; font-size:17px; cursor:pointer; pointer-events:auto; z-index:40; }
+  #hintTouch { position:absolute; top:14px; left:50%; transform:translateX(-50%); font-size:11px; color:#8a93a6; background:rgba(10,14,22,0.6); padding:3px 10px; border-radius:14px; white-space:nowrap; pointer-events:none; }
   @media (orientation:portrait) { #hintRotate { display:flex; } }
   #hintRotate { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:60; display:none; align-items:center; justify-content:center; text-align:center; background:rgba(10,14,22,0.85); border:1px solid #2a3448; border-radius:14px; font-size:13px; padding:8px 16px; pointer-events:none; max-width:86vw; }
 </style>
 </head>
 <body>
 <div id="menu">
-  <h1>⚔ PROTO ARENA</h1>
-  <div class="sub">3D-шутер, кілька гравців по WebRTC.<br>Хост = гравець, без сервера.</div>
+  <h1>SYNERGY: <span>PHASE SHIFT</span> 3D</h1>
+  <div class="sub">Змагальне сходження: будуй стовпчики, качай енергію ⚡ з гір,<br>стрибай нижче або вище — і першим досягни ВИХОДУ 🏆. Кожен сам за себе.</div>
   <input class="inp" id="nameInp" maxlength="14" placeholder="Твій нік" autocomplete="off">
   <div class="row">
     <button class="btn green" id="quickBtn">⚡ Грати разом</button>
   </div>
-  <div class="sub" style="margin-top:-4px">Спільна кімната: код <b id="quickCode">REGO1</b><br>перший гравець стає хостом, решта заходять самі</div>
+  <div class="sub" style="margin-top:-4px">Спільна кімната: код <b id="quickCode">REGO1</b><br>перший гравець створює світ, решта заходять самі</div>
   <div class="row">
     <button class="btn" id="createBtn">Створити свою</button>
+    <button class="btn warn" id="rulesBtn">📜 Правила</button>
+    <a class="btn" href="/help.html" style="text-decoration:none" id="helpBtn">📖 Довідка</a>
   </div>
   <div class="row">
     <input class="inp" id="codeInp" maxlength="5" placeholder="Код кімнати" autocomplete="off" style="text-transform:uppercase">
@@ -97,25 +182,119 @@
   <div class="sub" style="font-size:12px; margin-top:6px">або введи код вручну</div>
   <button class="btn green" id="qrCloseBtn">Грати ▶</button>
 </div>
+<div id="rules">
+  <div class="rulesbox">
+    <h2>🧬 SYNERGY: PHASE SHIFT — правила</h2>
+    <div class="legend">
+      <span class="it"><span class="sw" style="background:#8a8f98"></span>Z1 · пил</span>
+      <span class="it"><span class="sw" style="background:#7a6a55"></span>Z2 <b>H</b> водень</span>
+      <span class="it"><span class="sw" style="background:#3fb6d8"></span>Z3 <b>C</b> вуглець</span>
+      <span class="it"><span class="sw" style="background:#3fe08a"></span>Z4 <b>N</b> азот</span>
+      <span class="it"><span class="sw" style="background:#a84fd8"></span>Z5 <b>O</b> кисень</span>
+      <span class="it"><span class="sw" style="background:#ffe9a8"></span>Z6 <b>F</b> флуор</span>
+      <span class="it"><span class="sw" style="background:#ff9e5e"></span>Z7 <b>Ne</b> неон</span>
+      <span class="it"><span class="sw" style="background:#b388ff"></span>Z8 <b>Na</b> натрій</span>
+      <span class="it"><span class="sw" style="background:#ff5c8a"></span>Z9 <b>Mg</b> магній</span>
+      <span class="it"><span class="sw" style="background:#ffffff"></span>Z10 <b>Al</b> алюміній</span>
+    </div>
+    <h3>🎯 Мета: дістанься ВИХОДУ</h3>
+    <p>Десь <b>вгорі</b> з'явився портал-вихід (🏆 блакитний стовп). <b>Хто перший досягне його — переміг</b>, і починається новий раунд з новим виходом. Вихід рандомний: висота 14–26 м.</p>
+    <h3>⛰ Стовпчики = рельєф</h3>
+    <p>Клітинки ростуть у вежі: чим вищий ранг Z1–Z10 — тим вища (Z2 = 0.8 м, кожен ранг +0.8 м). На вежу можна <b>тільки ЗАСТРИБНУТИ</b> — кроком не зайдеш. Стрибай на вершину, будуй сходинки вгору — або руйнуй чужі, щоб конкурент не пройшов.</p>
+    <h3>⚡ Енергія (головний ресурс)</h3>
+    <p><b>ПКМ / 💨</b> на вежі (ранг 2+) — висмоктуєш її: ранг падає, ти отримуєш <b>енергію</b> (+ранг за клітинку). Війна ⚔️ теж фармить, але вдвічі менше. <b>Базовий пил Z1 недоторканний</b> — його можна тільки ущільнювати.</p>
+    <h3>🦘 Політ (тримай ⬆ / Space)</h3>
+    <p>Натисни і <b>тримай</b> — злітаєш, і <b>енергія витрачається під час польоту</b> (⚡/с). Відпустив — падаєш. Чим більше накачав ⚡ — тим довше і вище летиш (100⚡ ≈ 3 с підйому). Без заряду — звичайний стрибок 1.6 м. Після польоту знову фармиш ⚡ з веж.</p>
+    <h3>🕊 Мир / ⚔️ Війна</h3>
+    <p><b>ЛКМ / 🫳 (тримай)</b> — ущільнюєш матерію; коли тиск і когерентність перевищують поріг — <b>⚛ синтез</b>, ранг зростає. <b>Q / 🕊⚔️</b> — режим війни: постріли руйнують вежі (дають ⚡), вбивають жителів і гравців. Шлак Z5 — міна: вибухає радіусом 3.</p>
+    <h3>🔗 Сполуки (хімія ландшафту)</h3>
+    <p>Висота стовпця = елемент: <b>H=Z2, C=Z3, N=Z4, O=Z5</b>, важчі — Z6+. Коли навколо центрального атома виростають інші у правильній формі — утворюється <b>сполука</b>: 🔵 <b>H₂O</b> = O + 2×H під кутом, ⚪ <b>CO₂</b> = C + 2×O навпроти, 🟢 <b>NH₃</b> = N + 3×H, 🟡 <b>CH₄</b> = C + 4×H. Над атомами сполуки видно їх символи (H, C, N, O…). Сполука <b>фіксується</b>: щоб розібрати, спершу треба викачати <b>силу зв'язку</b> (💨/⚔️ дають +1⚡ за тік, ранг падає тільки коли зв'язок зруйновано). Сусідні сполуки одного типу — <b>шар речовини</b>, ще міцніший (×1.5). Боти й аномалії теж спершу гризуть зв'язки — ландшафт змінюється повільніше і росте.</p>
+    <h3>⚛ Просторові молекули</h3>
+    <p>Зібрана сполука стає <b>3D-об'єктом</b> — атом-кулею з орбіталями, що левітує на випадковій висоті над вежею. <b>Застрибни на неї</b> — це платформа в повітрі! Близькі молекули <b>притягуються</b> і злипаються в кластери-мости. Наведи 🫳 (ЛКМ, тримай) на молекулу — <b>прокачуєш її атоми</b>: валідна форма змінює тип і характеристики, а невалідна робить молекулу <b>нестабільною</b> (блимає) — і вона <b>вибухає</b> 💥.</p>
+    <h3>👾 Аномалії</h3>
+    <p>Приходять з країв за балансом: <b>1 аномалія на 10 молекул</b> (мінімум 1, якщо є молекули), респавн кожні <b>30 с</b>. У клітини не заходять — <b>тиснуть ззовні</b>: ентропія сусідніх атомів росте, і вони <b>спонтанно розпадаються</b> (спершу зв'язки сполук, потім ранг). Знищуй дією 🫳 (тримай на них) — +XP. Z6+ — захисне поле, що ранить аномалій.</p>
+    <h3>⬆️ XP і рівні</h3>
+    <p>XP за: ⚛ синтез (+12–30), 💥 аномалії (+20), 🎯 епохи (+35–80), 🏆 вихід (+150). Рівень дає +12% сили будівництва, +5 HP, товщий промінь.</p>
+    <h3>🎮 Керування</h3>
+    <p><b>Десктоп:</b> WASD — рух · миша — огляд · ЛКМ — будувати · ПКМ — викачувати ⚡ · <b>Q</b> — режим 🕊/⚔️ · <b>Space або ⬆ (тримай) — політ</b>.<br><b>Телефон:</b> джойстик зліва, огляд справа; 🫳 — будувати, 💨 — викачувати, ⬆ внизу справа (тримай) — політ. ⚡ заряд видно на кільці навколо кнопки.</p>
+    <button id="rulesGo">Зрозуміло, грати ▶</button>
+    <a href="/help.html" id="rulesHelp" style="display:block; margin-top:10px; color:#8890b0; font-size:13px; text-decoration:underline">📖 Повна довідка з молекулами і міцністю</a>
+  </div>
+</div>
 <div id="hintRotate">Поверни телефон горизонтально 🔄<br><small>гра працює в landscape</small></div>
 <div id="status"></div>
 <div id="hud">
   <div id="cross"></div>
+  <div id="actHint"></div>
   <div id="hitmark"></div>
-  <div id="hpWrap"><div id="hpLabel">HP</div><div id="hpBar"><div id="hpFill"></div></div></div>
-  <div id="frags"><small>ФРАГИ</small><span id="fragsVal">0</span></div>
+  <div id="hpWrap"><div id="hpLabel">ЖИТТЯ</div><div id="hpBar"><div id="hpFill"></div></div></div>
+  <div id="xpWrap"><div id="xpLabel">⬆️ РІВЕНЬ <span id="lvlVal">1</span> · ДОСВІД</div><div id="xpBar"><div id="xpFill"></div></div></div>
+  <div id="frags"><small>ВБИВСТВ</small><span id="fragsVal">0</span></div>
+  <div id="playersBox"></div>
+  <div id="chips">
+    <div class="chip" id="modeChip" onclick="toggleMode()">🕊 МИР</div>
+    <div class="chip">🏆 <span id="goalText">Вихід: ?</span></div>
+    <div class="chip">👾 <span id="waveText">0 · ⏳ 30с</span></div>
+    <div class="chip">🌡 <span id="entText">0.02</span></div>
+    <div class="chip" style="display:none">⚛ <span id="synText">0</span> ☢ <span id="decText">0</span></div>
+  </div>
   <div id="killfeed"></div>
+  <div id="goalHint"></div>
   <div id="rtt">— мс</div>
+  <button id="helpBtn" onclick="openRules()">?</button>
+  <button id="settingsBtn" onclick="openSettings()">⚙️</button>
+  <button id="modeBtnD" onclick="toggleMode()" title="Q — мир/війна">🕊</button>
+  <div id="winBanner"><div class="t">🏆 <span id="winName">—</span> ПЕРЕМІГ!</div><div class="s">досяг виходу · новий раунд за 6с</div></div>
+  <div id="confettiLayer"></div>
   <div id="dead"><div class="big">ТИ ЗАГИНУВ</div><div class="cnt" id="deadCnt">відродження...</div></div>
 </div>
 <div id="tc">
   <div id="joyBase"><div id="joyKnob"></div></div>
-  <div id="fireBtn">ВОГОНЬ</div>
-  <div id="jumpBtn">СТРИБОК</div>
-  <div id="hintTouch">Ліва половина — рух, права — огляд</div>
+  <div id="actions">
+    <button class="mcbtn" id="modeBtn" onclick="toggleMode()">🕊</button>
+    <button class="mcbtn extbtn" id="extBtn">💨</button>
+    <button class="mcbtn actbtn" id="actBtn">🫳</button>
+  </div>
+  <div id="hintTouch">Ліва половина — рух, права — огляд · ⬆ справа внизу — політ</div>
 </div>
+<div id="jumpWrap"><div id="jumpBtn" title="Стрибок: тримай, щоб летіти (Space)"><span id="jumpIcon">⬆</span><span id="jumpCharge" class="charge">⚡0</span></div></div>
 
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<div id="settings">
+  <div class="box">
+    <h2>⚙️ Налаштування гри</h2>
+    <div class="sub">Застосовує власник кімнати до всього світу</div>
+    <div class="lock" id="settingsLock" style="display:none">🔒 Налаштування встановлює власник кімнати</div>
+    <div class="row"><label>Висота виходу: від (м)</label><input type="number" id="cfg_portalMin" min="6" max="40"></div>
+    <div class="row"><label>Висота виходу: до (м)</label><input type="number" id="cfg_portalMax" min="8" max="60"></div>
+    <div class="hint">Портал-вихід 🏆 з'являється випадково в цих межах. Новий портал з'явиться одразу.</div>
+    <div class="row"><label>Ємність енергії ⚡</label><input type="number" id="cfg_energyCap" min="20" max="500"></div>
+    <div class="row"><label>Витрата польоту (⚡/с)</label><input type="number" id="cfg_energyRate" min="5" max="100"></div>
+    <div class="row"><label>Швидкість підйому (м/с)</label><input type="number" id="cfg_ascentV" min="3" max="20"></div>
+    <div class="row"><label>Гравітація (×)</label><input type="number" id="cfg_gravityK" min="0.3" max="2" step="0.1"></div>
+    <div class="row"><label>Жителів світу (ботів)</label><input type="number" id="cfg_bots" min="0" max="48"></div>
+    <div class="hint">Боти будують вежі, руйнують, обходять стіни.</div>
+    <div class="btns">
+      <button class="btn green" id="cfgApply">Застосувати</button>
+      <button class="btn gray" onclick="closeSettings()">Закрити</button>
+    </div>
+  </div>
+  <div class="box">
+    <h2>🎮 Кнопки і джойстик</h2>
+    <div class="sub">Твоє особисте — зберігається на цьому пристрої</div>
+    <div class="row"><label>Сторона кнопок</label>
+      <select id="lay_side">
+        <option value="right">Права рука</option>
+        <option value="left">Ліва рука</option>
+      </select>
+    </div>
+    <div class="row"><label>Розмір кнопок</label><input type="range" id="lay_size" min="0.7" max="1.5" step="0.05" value="1"></div>
+    <div class="row"><label>Розмір джойстика</label><input type="range" id="lay_joy" min="0.7" max="1.5" step="0.05" value="1"></div>
+    <button class="btn" id="layEditBtn">✋ Пересунути кнопки</button>
+    <div class="hint">Натисни — кнопки ⬆ / 🫳 / 💨 / 🕊 стануть перетягуваними. Потягни куди зручно — позиція збережеться сама.</div>
+  </div>
+</div>
+<button class="btn green" id="layoutDone">✅ Готово</button>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.149.0/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
@@ -126,30 +305,47 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-/* ============ config ============ */
+/* ============ world constants (mirror server) ============ */
 const GRAVITY = 22, JUMP_V = 8.5, SPEED = 8, ACCEL = 45, FRICTION = 9, RADIUS = 0.5;
 const EYE = 1.6, PLAYER_H = 1.9;
 const ARENA = 27;
-const MAX_HP = 100, DMG = 25, FIRE_CD = 0.28, RESPAWN = 3;
+const MAX_HP = 100, RESPAWN = 3;
 const STATE_HZ = 20, INPUT_HZ = 25;
-
-/* arena: floor + crates (AABB) + bounds */
-const CRATES = [
-  { x: -8, z: -8, w: 4, h: 4 }, { x: 8, z: 8, w: 4, h: 4 },
-  { x: 8, z: -12, w: 4, h: 4 }, { x: -12, z: 10, w: 4, h: 4 },
-  { x: 0, z: 0, w: 3, h: 3 },
+const GRID = 27, CELL = 2.0, N = GRID * GRID;
+const RANGE = 14;
+const H_CELL = 0.8, ENERGY_CAP = 100;
+const ASCENT_V = 9, ASCEL = 30, E_RATE = 30;
+const cellX = (c) => (c - (GRID - 1) / 2) * CELL;
+const cellZ = (c) => (c - (GRID - 1) / 2) * CELL;
+const toCell = (w) => clamp(Math.floor((w + ARENA) / CELL), 0, GRID - 1);
+const PAL = [
+  [0,0,0], [138,143,152], [122,106,85], [63,182,216], [63,224,138],
+  [168,79,216], [255,233,168], [255,158,94], [179,136,255], [255,92,138], [255,255,255]
 ];
+const RANK_NAMES = {1:"Пил",2:"Базальт",3:"Руда",4:"Кристал",5:"Шлак",6:"Ефір",7:"Лінза",8:"Брама",9:"Ядро",10:"Сингулярність"};
+const MOL_COLORS = { 1: [78,201,255], 2: [200,205,215], 3: [126,240,160], 4: [255,209,102] };   // H₂O / CO₂ / NH₃ / CH₄
+const MOL_NAMES_C = { 1: "Вода H₂O", 2: "Вуглекислий газ CO₂", 3: "Аміак NH₃", 4: "Метан CH₄" };
+// ранг = елемент (висота = атом): H(2), C(3), N(4), O(5), важчі Z6+
+const ELEM = { 1: "·", 2: "H", 3: "C", 4: "N", 5: "O", 6: "F", 7: "Ne", 8: "Na", 9: "Mg", 10: "Al" };
+const ELEM_NAME = { 1: "Пил", 2: "Водень", 3: "Вуглець", 4: "Азот", 5: "Кисень", 6: "Флуор", 7: "Неон", 8: "Натрій", 9: "Магній", 10: "Алюміній" };
+const AGENT_COLORS = { gather: 0x2fd86b, settle: 0x4f8cff, carry: 0xffb84d, chaos: 0xff5c5c };
+const xpToNextClient = (l) => 80 + (l - 1) * 40;
+const maxHpClient = (l) => 100 + (l - 1) * 5;
 
 /* ============ app state ============ */
 const G = {
-  peer: null, conns: new Map(), conn: null, isHost: false, myId: null,
-  players: new Map(), // id -> {id,name,x,y,z,vx,vy,vz,yaw,pitch,hp,alive,frags,respawnAt,lastFire,mesh,label}
-  input: { f: 0, s: 0, jump: false, fire: false }, lastFireSent: false,
-  lastStateAt: 0, stateBuf: null, stateAcc: 0,
-  inAcc: 0, lastIn: 0,
-  rtt: 0, rttLastPingAt: 0, rttTimer: 0,
+  ws: null, code: null, myId: null,
+  players: new Map(),
+  input: { f: 0, s: 0, jump: false, act: false, ext: false, mode: 0 },
+  lastStateAt: 0, stateBuf: null,
+  inAcc: 0, rtt: 0, rttLastPingAt: 0, rttTimer: 0,
   scene: null, camera: null, renderer: null, tracers: [], clock: null,
   running: false, deadUntil: 0, kf: [],
+  grid: null, entQ: null, hot: new Set(),
+  agents: new Map(), anoms: new Map(), mols: new Map(),
+  wave: { num: 0, timer: 30 }, goal: { rank: 2, name: "Базальт" }, syn: 0, dec: 0, entropy: 0,
+  portal: null, myEnergy: 0, winner: null, cfg: null, owner: null,
+  cells: null, agentPool: [], anomPool: [], molPool: [], rings: [], parts: [], ptsGeo: null, pts: null, beam: null, tRing: null,
   touchLook: null, joy: null, joyId: null,
 };
 
@@ -162,25 +358,24 @@ function init3d() {
   G.renderer.setSize(window.innerWidth, window.innerHeight);
   G.scene = new THREE.Scene();
   G.scene.background = new THREE.Color(0x0d1420);
-  G.scene.fog = new THREE.Fog(0x0d1420, 60, 140);
+  G.scene.fog = new THREE.Fog(0x0d1420, 70, 160);
   G.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 300);
   G.clock = new THREE.Clock();
 
-  // lights
-  G.scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x1a2233, 0.9));
-  const dl = new THREE.DirectionalLight(0xffffff, 0.8);
+  G.scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x1a2233, 0.85));
+  const dl = new THREE.DirectionalLight(0xffffff, 0.75);
   dl.position.set(30, 60, 20);
   G.scene.add(dl);
 
   // floor
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(ARENA * 2, ARENA * 2),
-    new THREE.MeshStandardMaterial({ color: 0x1c2536, roughness: 0.9 })
+    new THREE.MeshStandardMaterial({ color: 0x141c2c, roughness: 0.95 })
   );
   floor.rotation.x = -Math.PI / 2;
   G.scene.add(floor);
-  const grid = new THREE.GridHelper(ARENA * 2, 18, 0x2c3a55, 0x232e45);
-  grid.position.y = 0.01;
+  const grid = new THREE.GridHelper(ARENA * 2, GRID, 0x2c3a55, 0x232e45);
+  grid.position.y = 0.02;
   G.scene.add(grid);
 
   // walls
@@ -193,16 +388,154 @@ function init3d() {
     m.rotation.y = Math.atan2(-dz, dx);
     G.scene.add(m);
   };
-  edge(-ARENA, -ARENA, ARENA, -ARENA, 3); edge(-ARENA, ARENA, ARENA, ARENA, 3);
-  edge(-ARENA, -ARENA, -ARENA, ARENA, 3); edge(ARENA, -ARENA, ARENA, ARENA, 3);
+  edge(-ARENA, -ARENA, ARENA, -ARENA, 4); edge(-ARENA, ARENA, ARENA, ARENA, 4);
+  edge(-ARENA, -ARENA, -ARENA, ARENA, 4); edge(ARENA, -ARENA, ARENA, ARENA, 4);
 
-  // crates
-  const crateMat = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.8 });
-  for (const c of CRATES) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(c.w, 2, c.h), crateMat);
-    m.position.set(c.x, 1, c.z);
-    G.scene.add(m);
+  // matter cells — one InstancedMesh, 729 instances
+  const cellGeo = new THREE.BoxGeometry(CELL * 0.92, 1, CELL * 0.92);
+  const cellMat = new THREE.MeshStandardMaterial({ roughness: 0.65, metalness: 0.08 });
+  G.cells = new THREE.InstancedMesh(cellGeo, cellMat, N);
+  G.cells.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  G.cells.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(N * 3), 3);
+  G.scene.add(G.cells);
+
+  // citizens pool
+  for (let i = 0; i < 48; i++) {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.26, 0.55, 4, 8), new THREE.MeshStandardMaterial({ roughness: 0.5 }));
+    body.position.y = 0.55;
+    g.add(body);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.2, 6), new THREE.MeshStandardMaterial({ color: 0xffd166 }));
+    nose.rotation.x = Math.PI / 2;
+    nose.position.set(0, 0.55, 0.3);
+    g.add(nose);
+    g.visible = false;
+    G.scene.add(g);
+    G.agentPool.push(g);
   }
+
+  // anomalies pool (куля + кільце-маркер на землі — помітно, але НЕ пронизує стовпці)
+  for (let i = 0; i < 10; i++) {
+    const g = new THREE.Group();
+    const m = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.75, 1),
+      new THREE.MeshStandardMaterial({ color: 0xa84fd8, emissive: 0x6a1fa8, emissiveIntensity: 1.2, roughness: 0.3 })
+    );
+    m.position.y = 1.0;
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(1.1, 1.45, 26),
+      new THREE.MeshBasicMaterial({ color: 0xa84fd8, transparent: true, opacity: 0.55, side: THREE.DoubleSide })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.08;
+    g.add(m); g.add(ring);
+    g.visible = false;
+    G.scene.add(g);
+    G.anomPool.push(g);
+  }
+
+  // просторові молекули: ядро-куля + електронні орбіталі (атом-візуалізація)
+  G.molPool = [];
+  for (let i = 0; i < 24; i++) {
+    const g = new THREE.Group();
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(0.55, 22, 16),
+      new THREE.MeshStandardMaterial({ roughness: 0.25, metalness: 0.2, emissive: 0xffffff, emissiveIntensity: 0.25 })
+    );
+    const orb1 = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.06, 8, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
+    const orb2 = new THREE.Mesh(new THREE.TorusGeometry(1.18, 0.045, 8, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 }));
+    orb1.rotation.x = Math.PI / 2.4;
+    orb2.rotation.y = Math.PI / 2.6;
+    g.add(core); g.add(orb1); g.add(orb2);
+    g.visible = false;
+    G.scene.add(g);
+    G.molPool.push(g);
+  }
+
+  // shockwave rings
+  for (let i = 0; i < 12; i++) {
+    const r = new THREE.Mesh(
+      new THREE.RingGeometry(0.85, 1, 32),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, side: THREE.DoubleSide })
+    );
+    r.rotation.x = -Math.PI / 2;
+    r.visible = false;
+    G.scene.add(r);
+    G.rings.push({ mesh: r, t: 0, life: 0, max: 5, color: 0xffffff });
+  }
+
+  // particles
+  const PCOUNT = 600;
+  G.ptsGeo = new THREE.BufferGeometry();
+  G.ptsGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(PCOUNT * 3), 3));
+  G.pts = new THREE.Points(G.ptsGeo, new THREE.PointsMaterial({ size: 0.18, color: 0xffffff, transparent: true, opacity: 0.9 }));
+  G.pts.frustumCulled = false;
+  G.scene.add(G.pts);
+
+  // build/war laser (self) — товстий видимий промінь
+  const laserMat = new THREE.MeshBasicMaterial({ color: 0x2fd86b, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false });
+  G.laser = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1, 6, 1, true), laserMat);
+  G.laser.visible = false;
+  G.scene.add(G.laser);
+  // vertical marker at the target cell
+  G.marker = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 1, 8, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0x2fd86b, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
+  G.marker.visible = false;
+  G.scene.add(G.marker);
+
+  // target ring on the ground (великий, помітний)
+  G.tRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.95, 1.2, 28),
+    new THREE.MeshBasicMaterial({ color: 0x2fd86b, transparent: true, opacity: 0.95, side: THREE.DoubleSide })
+  );
+  G.tRing.rotation.x = -Math.PI / 2;
+  G.tRing.visible = false;
+  G.scene.add(G.tRing);
+
+  // portal (вихід): світловий стовп + ядро + кільце на землі
+  G.portalBeam = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.7, 1.1, 1, 20, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0x4ec9ff, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+  );
+  G.portalBeam.visible = false;
+  G.scene.add(G.portalBeam);
+  G.portalCore = new THREE.Mesh(
+    new THREE.SphereGeometry(0.8, 20, 20),
+    new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x4ec9ff, emissiveIntensity: 2.2, roughness: 0.2 })
+  );
+  G.portalCore.visible = false;
+  G.scene.add(G.portalCore);
+  G.portalRing = new THREE.Mesh(
+    new THREE.RingGeometry(1.3, 1.7, 32),
+    new THREE.MeshBasicMaterial({ color: 0x4ec9ff, transparent: true, opacity: 0.6, side: THREE.DoubleSide })
+  );
+  G.portalRing.rotation.x = -Math.PI / 2;
+  G.portalRing.visible = false;
+  G.scene.add(G.portalRing);
+
+  // winner beacon: золотий стовп над переможцем
+  G.winBeam = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.9, 1.6, 1, 20, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+  );
+  G.winBeam.visible = false;
+  G.scene.add(G.winBeam);
+  G.winRing = new THREE.Mesh(
+    new THREE.RingGeometry(1.6, 2.1, 32),
+    new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
+  );
+  G.winRing.rotation.x = -Math.PI / 2;
+  G.winRing.visible = false;
+  G.scene.add(G.winRing);
+
+  // own player aura (grows with level)
+  G.aura = new THREE.Mesh(
+    new THREE.RingGeometry(0.5, 0.68, 28),
+    new THREE.MeshBasicMaterial({ color: 0x2fd86b, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
+  );
+  G.aura.rotation.x = -Math.PI / 2;
+  G.aura.visible = false;
+  G.scene.add(G.aura);
 
   // gun (attached to camera)
   const gun = new THREE.Group();
@@ -222,283 +555,202 @@ function init3d() {
   });
 }
 
-/* ============ physics (shared host/guest) ============ */
-function collideCircle(x, z, r) {
-  // bounds
-  let nx = clamp(x, -ARENA + r, ARENA - r), nz = clamp(z, -ARENA + r, ARENA - r);
-  // crates
-  for (const c of CRATES) {
-    const cx0 = c.x - c.w / 2 - r, cx1 = c.x + c.w / 2 + r;
-    const cz0 = c.z - c.h / 2 - r, cz1 = c.z + c.h / 2 + r;
-    if (nx > cx0 && nx < cx1 && nz > cz0 && nz < cz1) {
-      const dl = nx - cx0, dr = cx1 - nx, dt = nz - cz0, db = cz1 - nz;
-      const m = Math.min(dl, dr, dt, db);
-      if (m === dl) nx = cx0; else if (m === dr) nx = cx1;
-      else if (m === dt) nz = cz0; else nz = cz1;
-    }
-  }
-  return { x: nx, z: nz };
+/* ============ networking (WebSocket server) ============ */
+// GitHub Pages = https → браузер блокує ws:// (mixed content), тому wss через Caddy-проксі на VPS.
+// Локально (localhost) — прямий ws://. Усі гравці (і з GitHub, і з VPS-статики) грають на ОДНОМУ
+// сервері 116.203.217.173:8082 — затримка однакова для всіх.
+const WS_URL = (location.protocol === "https:")
+  ? "wss://rego.116-203-217-173.sslip.io"
+  : "ws://" + ((location.hostname === "localhost" || location.hostname === "127.0.0.1") ? location.hostname : "116.203.217.173") + ":8082";
+
+function connectWS(code) {
+  G.code = code;
+  if (!location.hash) location.hash = "room=" + code;
+  setStatus("З'єднуємось з кімнатою " + code + "...");
+  $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = true;
+  let ws;
+  try { ws = new WebSocket(WS_URL + "/?room=" + encodeURIComponent(code) + "&name=" + encodeURIComponent(G.myName)); }
+  catch (e) { setStatus("Не вдалося підключитись: " + e.message); return; }
+  G.ws = ws;
+  ws.onopen = () => { setStatus("У кімнаті " + code); };
+  ws.onmessage = (ev) => {
+    let d;
+    try { d = JSON.parse(ev.data); } catch (e) { return; }
+    handleMsg(d);
+  };
+  ws.onclose = () => { setStatus("З'єднання втрачено — перезаходимо..."); setTimeout(() => location.reload(), 800); };
+  ws.onerror = () => { setStatus("Помилка з'єднання з сервером"); $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = false; };
 }
 
-function movePlayer(p, input, dt) {
-  if (!p.alive) return;
-  const yaw = p.yaw;
-  const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-  const rx = Math.cos(yaw), rz = -Math.sin(yaw);
-  p.vx += (fx * input.f + rx * input.s) * ACCEL * dt;
-  p.vz += (fz * input.f + rz * input.s) * ACCEL * dt;
-  const fr = 1 - Math.min(1, FRICTION * dt);
-  p.vx *= fr; p.vz *= fr;
-  p.x += p.vx * dt; p.z += p.vz * dt;
-  const c = collideCircle(p.x, p.z, RADIUS);
-  p.x = c.x; p.z = c.z;
-  if (Math.abs(p.vx) < 0.05) p.vx = 0;
-  if (Math.abs(p.vz) < 0.05) p.vz = 0;
-  // jump
-  p.vy -= GRAVITY * dt;
-  p.y += p.vy * dt;
-  if (p.y <= 0) { p.y = 0; p.vy = 0; if (input.jump) p.vy = JUMP_V; }
+function decodeB64(b64) {
+  const bin = atob(b64);
+  const u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u;
 }
 
-/* ============ raycast ============ */
-function rayAABB(ox, oy, oz, dx, dy, dz, x0, y0, z0, x1, y1, z1) {
-  let tmin = 0, tmax = 1e9;
-  const axes = [[dx, ox, x0, x1], [dy, oy, y0, y1], [dz, oz, z0, z1]];
-  for (const [d, o, a, b] of axes) {
-    if (Math.abs(d) < 1e-9) { if (o < a || o > b) return null; continue; }
-    let t1 = (a - o) / d, t2 = (b - o) / d;
-    if (t1 > t2) { const tt = t1; t1 = t2; t2 = tt; }
-    tmin = Math.max(tmin, t1); tmax = Math.min(tmax, t2);
-    if (tmin > tmax) return null;
-  }
-  return tmin;
-}
-
-function castShot(shooter) {
-  const dir = new THREE.Vector3(0, 0, -1)
-    .applyEuler(new THREE.Euler(shooter.pitch, shooter.yaw, 0, "YXZ"));
-  const ox = shooter.x, oy = shooter.y + EYE, oz = shooter.z;
-  let bestT = 1000, hitId = null;
-  for (const p of G.players.values()) {
-    if (p.id === shooter.id || !p.alive) continue;
-    const t = rayAABB(ox, oy, oz, dir.x, dir.y, dir.z, p.x - 0.5, p.y, p.z - 0.5, p.x + 0.5, p.y + PLAYER_H, p.z + 0.5);
-    if (t !== null && t < bestT) { bestT = t; hitId = p.id; }
-  }
-  for (const c of CRATES) {
-    const t = rayAABB(ox, oy, oz, dir.x, dir.y, dir.z, c.x - c.w / 2, 0, c.z - c.h / 2, c.x + c.w / 2, 2, c.z + c.h / 2);
-    if (t !== null && t < bestT) { bestT = t; hitId = null; }
-  }
-  return { x1: ox + dir.x * bestT, y1: oy + dir.y * bestT, z1: oz + dir.z * bestT, hitId };
-}
-
-/* ============ networking ============ */
-function newPeerId(code) { return "s3d" + code.toLowerCase(); }
-
-function hostSetup(code) {
-  G.isHost = true;
-  G.peer = new Peer("s3d" + code, { debug: 1 });
-  G.peer.on("open", (id) => {
-    if (!location.hash) location.hash = "room=" + code;
-    setStatus("Кімната " + code + " — чекаємо гравців. Код: " + code);
-    if (isTouchDevice()) showQROverlay(code);
-    const p = addPlayer("host", G.myName, true);
-    G.myId = p.id;
-    $("menu").classList.add("hidden");
-    $("hud").style.display = "block";
-    startGame();
-  });
-  G.peer.on("connection", (conn) => {
-    conn.on("open", () => {
-      G.conns.set(conn.peer, conn);
-      setStatus(G.conns.size + " гравець(ів) у кімнаті");
-    });
-    conn.on("data", (d) => handleHostMsg(conn, d));
-    conn.on("close", () => {
-      const p = [...G.players.values()].find((x) => x.connId === conn.peer);
-      if (p) { G.players.delete(p.id); removeMesh(p); broadcast({ t: "leave", id: p.id, name: p.name }); }
-      G.conns.delete(conn.peer);
-      if (G.conns.size > 0) setStatus(G.conns.size + " гравець(ів) у кімнаті");
-    });
-  });
-  G.peer.on("error", (e) => {
-    if (e.type === "unavailable-id") {
-      setStatus("Кімната вже існує — приєднуємось");
-      G.isHost = false;
-      setTimeout(() => guestSetup(code, 1, true), 800);
-    } else setStatus("Помилка: " + e.type);
-  });
-}
-
-function guestSetup(code, attempt, orHost) {
-  attempt = attempt || 1;
-  G.peer = new Peer({ debug: 1 });
-  let joined = false;
-  const joinTimeout = setTimeout(() => {
-    // no 'peer-unavailable' error fired (slow signaling) — if orHost, become host
-    if (!joined && orHost) {
-      setStatus("Кімнати немає — створюємо " + code + "...");
-      try { G.peer.destroy(); } catch (e) {}
-      hostSetup(code);
-    }
-  }, 7000);
-  G.peer.on("open", () => {
-    const conn = G.peer.connect("s3d" + code, { reliable: false });
-    conn.on("open", () => {
-      joined = true;
-      clearTimeout(joinTimeout);
-      G.conn = conn;
-      conn.send({ t: "join", name: G.myName });
-    });
-    conn.on("data", (d) => handleGuestMsg(d));
-    conn.on("close", () => { setStatus("Хост відключився"); setTimeout(() => location.reload(), 1200); });
-    conn.on("error", () => { setStatus("Помилка з\'єднання"); });
-  });
-  G.peer.on("error", (e) => {
-    if (e.type === "peer-unavailable") {
-      clearTimeout(joinTimeout);
-      if (orHost && attempt < 3) {
-        setStatus("Шукаємо кімнату... (" + attempt + "/3)");
-        try { G.peer.destroy(); } catch (err) {}
-        setTimeout(() => guestSetup(code, attempt + 1, true), 1200);
-      } else if (orHost) {
-        setStatus("Створюємо кімнату " + code + "...");
-        try { G.peer.destroy(); } catch (err) {}
-        setTimeout(() => hostSetup(code), 300);
-      } else {
-        setStatus("Не вдалося знайти кімнату (" + e.type + ")");
-        $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = false;
-      }
-    } else {
-      setStatus("Помилка: " + e.type);
-      $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = false;
-    }
-  });
-}
-
-function handleHostMsg(conn, d) {
-  if (d.t === "ping") { conn.send({ t: "pong", ts: d.ts }); return; }
-  if (d.t === "join") {
-    const p = addPlayer(conn.peer, d.name, false);
-    p.connId = conn.peer;
-    p.lastSeenAt = performance.now();
-    G.myId = G.myId; // host id unchanged
-    conn.send({ t: "welcome", id: p.id, ps: packPlayers() });
-    broadcast({ t: "join", id: p.id, name: d.name });
-  } else if (d.t === "i" && d.id) {
-    const p = G.players.get(d.id);
-    if (!p) return;
-    p.lastSeenAt = performance.now();
-    p.yaw = d.yaw; p.pitch = d.pitch;
-    if (p.alive) {
-      p.inp = { f: d.i.f, s: d.i.s, jump: d.i.j, fire: d.i.fire };
-      if (d.i.fire && !p.lastFire && performance.now() - p.lastShotAt > FIRE_CD * 1000) {
-        p.lastFire = true; p.lastShotAt = performance.now();
-        const res = castShot(p);
-        const victim = res.hitId ? G.players.get(res.hitId) : null;
-        if (victim) {
-          victim.hp -= DMG;
-          if (victim.hp <= 0 && victim.alive) {
-            victim.alive = false; victim.hp = 0;
-            victim.respawnAt = performance.now() + RESPAWN * 1000;
-            victim.vy = 6; victim.y = 0.5; // death pop
-            p.frags++;
-            broadcast({ t: "kill", killer: p.name, victim: victim.name, kfrags: p.frags });
-            kfAdd(p.name + " 💀 " + victim.name);
-          }
-        }
-        broadcast({ t: "shot", sx: p.x, sy: p.y + EYE, sz: p.z, x1: res.x1, y1: res.y1, z1: res.z1, hitId: res.hitId, shooterId: p.id });
-      } else if (!d.i.fire) p.lastFire = false;
-    }
-  }
-}
-
-function handleGuestMsg(d) {
-  if (d.t === "pong") {
-    G.rtt = performance.now() - d.ts;
-    return;
-  }
+function handleMsg(d) {
+  if (d.t === "pong") { G.rtt = performance.now() - d.ts; return; }
   if (d.t === "welcome") {
     G.myId = d.id;
+    G.cfg = d.cfg || G.cfg;
+    G.owner = d.owner || null;
     G.lastStateAt = performance.now();
+    G.grid = decodeB64(d.grid);
+    G.entQ = decodeB64(d.entQ);
+    G.molQ = d.molQ ? decodeB64(d.molQ) : null;
+    G.bondQ = d.bondQ ? decodeB64(d.bondQ) : null;
     for (const sp of d.ps) addPlayer(sp.id, sp.name, sp.id === d.id, sp);
     $("menu").classList.add("hidden");
     $("hud").style.display = "block";
     startGame();
+    updateWorldMeta(d);
+    updateCells();
+    openRules();               // правила завжди видно перед стартом
+    if (isTouchDevice() && d.ps.length === 1) showQROverlay(d.room || G.code);
   } else if (d.t === "st") {
     G.stateBuf = d; G.lastStateAt = performance.now();
   } else if (d.t === "join") {
+    if (d.id === G.myId) return;   // сервер дублює наш власний join — не перезаписуємо себе
     addPlayer(d.id, d.name, false);
     kfAdd(d.name + " зайшов у гру");
   } else if (d.t === "leave") {
     const p = G.players.get(d.id);
     if (p) { G.players.delete(d.id); removeMesh(p); }
   } else if (d.t === "shot") {
-    spawnTracer(d.sx, d.sy, d.sz, d.x1, d.y1, d.z1);
+    spawnTracer(d.sx, d.sy, d.sz, d.x1, d.y1, d.z1, d.mode === 1 ? 0xff5c5c : 0x2fd86b);
     if (d.hitId && d.shooterId === G.myId) showHitmark();
   } else if (d.t === "kill") {
     kfAdd(d.killer + " 💀 " + d.victim);
+  } else if (d.t === "mode") {
+    toast((d.mode ? "⚔️ " : "🕊 ") + d.name + (d.mode ? " увімкнув війну!" : " повернувся в мир"));
+    kfAdd((d.mode ? "⚔️ " : "🕊 ") + d.name + (d.mode ? " увімкнув війну" : " тепер у мирі"));
+  } else if (d.t === "wave") {
+    toast("⚠️ +" + d.n + " аномалій тиснуть на сполуки!");
+    kfAdd("⚠️ +" + d.n + " аномалій (1 на 10 молекул)");
+  } else if (d.t === "boom") {
+    fxBoom(cellX(d.x), cellZ(d.y), d.r, d.kind);
+    toast(d.kind === "slag" ? "💥 Шлак вибухнув!" : d.kind === "anom" ? "💥 Аномалію знищено!" : d.kind === "mol" ? "💥 Нестабільна молекула вибухнула!" : "💥 Наднова!");
+  } else if (d.t === "boommsg") {
+    toast("💥 Нестабільна молекула вибухнула!");
+    kfAdd("💥 Вибух молекули");
+  } else if (d.t === "molupd") {
+    toast("⚛ Молекула змінилась: " + (d.name || "сполука"));
+    kfAdd("⚛ Молекула → " + (d.name || ""));
+  } else if (d.t === "molunstable") {
+    toast("⚠️ Молекула нестабільна — розіб'ється!");
+  } else if (d.t === "synth") {
+    fxSynth(cellX(d.x), cellZ(d.y), d.rank);
+    toast("⚛ Синтез: " + (RANK_NAMES[d.rank] || "") + " Z" + d.rank + "!");
+  } else if (d.t === "xp") {
+    addFloat((d.dxp > 0 ? "+" : "") + d.dxp + " " + (d.why || ""), d.dxp > 0 ? "#7ef0a0" : "#ff6b6b", cellX(d.wx), cellZ(d.wz));
+  } else if (d.t === "lvl") {
+    kfAdd("⬆️ " + d.name + " — рівень " + d.level + "!");
+    if (d.id === G.myId) { toast("⬆️ Ти досяг рівня " + d.level + "! Вплив сильніший"); fxRingAt(cellX(0), cellZ(0), 8, 0xffd166); }
+  } else if (d.t === "epoch") {
+    toast("🎯 Епоха: досягнуто Z" + d.rank + " " + (d.name || "") + "!");
+    kfAdd("🎯 Світ увійшов в епоху Z" + d.rank + " " + (d.name || ""));
+    fxRingAt(cellX(d.rank), cellZ(d.rank), 12, 0xffd166);
+  } else if (d.t === "en") {
+    addFloat((d.de > 0 ? "+" : "") + d.de + " " + (d.why || "⚡"), d.de > 0 ? "#4ec9ff" : "#9fb2d8", cellX(d.wx), cellZ(d.wz));
+  } else if (d.t === "win") {
+    kfAdd("🏆 " + d.name + " ДОСЯГ ВИХОДУ!");
+    toast("🏆 " + d.name + " досяг виходу! Новий раунд за 6с…");
+    fxRingAt(0, 0, 18, 0x4ec9ff);
+    showWinBanner(d.name);
+    spawnConfetti();
+    winSound();
+  } else if (d.t === "round") {
+    toast("🔄 Раунд " + d.n + " — новий вихід з'явився вгорі!");
+    kfAdd("🔄 Раунд " + d.n);
+    const wb = $("winBanner");
+    if (wb) wb.classList.remove("show");
+    G.winner = null;
+  } else if (d.t === "cfg") {
+    G.cfg = d.cfg;
+    syncSettingsUI();
   }
 }
 
-function broadcast(msg) {
-  for (const c of G.conns.values()) { try { c.send(msg); } catch (e) {} }
+function showWinBanner(name) {
+  const wb = $("winBanner");
+  if (!wb) return;
+  $("winName").textContent = name;
+  wb.classList.add("show");
 }
 
-function packPlayers() {
-  const arr = [];
-  for (const p of G.players.values()) arr.push(packOne(p));
-  return arr;
-}
-function packOne(p) {
-  return { id: p.id, name: p.name, x: p.x, y: p.y, z: p.z, yaw: p.yaw, pitch: p.pitch, hp: p.hp, alive: p.alive, frags: p.frags };
-}
-
-/* ============ host tick ============ */
-function hostTick(now) {
-  if (!G.isHost) return;
-  const dt = Math.min(0.05, (now - (G.lastHostTick || now)) / 1000);
-  G.lastHostTick = now;
-  // drop ghost players: no input for 5s (closed tab / dead WebRTC channel)
-  for (const p of [...G.players.values()]) {
-    if (p.id === "host" || !p.connId) continue;
-    if (now - (p.lastSeenAt || 0) > 5000) {
-      const conn = G.conns.get(p.connId);
-      if (conn) { try { conn.close(); } catch (e) {} G.conns.delete(p.connId); }
-      G.players.delete(p.id);
-      removeMesh(p);
-      broadcast({ t: "leave", id: p.id, name: p.name });
-    }
+function spawnConfetti() {
+  const layer = $("confettiLayer");
+  if (!layer) return;
+  const colors = ["#ffd166", "#4ec9ff", "#ff5c8a", "#3fe08a", "#b388ff", "#ffffff"];
+  layer.innerHTML = "";
+  for (let i = 0; i < 70; i++) {
+    const c = document.createElement("div");
+    c.className = "confetti";
+    c.style.left = Math.random() * 100 + "vw";
+    c.style.background = colors[i % colors.length];
+    c.style.animationDelay = (Math.random() * 0.8) + "s";
+    c.style.animationDuration = (2.2 + Math.random() * 1.8) + "s";
+    c.style.width = (6 + Math.random() * 7) + "px";
+    c.style.height = (8 + Math.random() * 8) + "px";
+    c.style.transform = "rotate(" + Math.random() * 360 + "deg)";
+    layer.appendChild(c);
   }
-  for (const p of G.players.values()) {
-    if (p.alive) movePlayer(p, p.inp || { f: 0, s: 0, jump: false }, dt);
-    if (!p.alive && p.respawnAt && now >= p.respawnAt) {
-      const s = spawnPoint();
-      p.x = s.x; p.y = 0; p.z = s.z; p.vx = p.vy = p.vz = 0;
-      p.hp = MAX_HP; p.alive = true; p.respawnAt = 0;
-    }
-  }
-  G.stateAcc += dt;
-  if (G.stateAcc >= 1 / STATE_HZ) {
-    G.stateAcc = 0;
-    broadcast({ t: "st", now, ps: packPlayers() });
-    applyState({ now, ps: packPlayers() }); // host renders itself too
-  }
+  setTimeout(() => { layer.innerHTML = ""; }, 5000);
 }
 
+function winSound() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "triangle"; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + i * 0.12);
+      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + i * 0.12 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.12 + 0.55);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(ctx.currentTime + i * 0.12); o.stop(ctx.currentTime + i * 0.12 + 0.6);
+    });
+    setTimeout(() => ctx.close(), 2500);
+  } catch (e) {}
+}
+
+function updateWorldMeta(d) {
+  G.grid = decodeB64(d.grid);
+  G.entQ = decodeB64(d.entQ);
+  G.molQ = d.molQ ? decodeB64(d.molQ) : null;
+  G.bondQ = d.bondQ ? decodeB64(d.bondQ) : null;
+  G.hot = new Set();
+  for (const h of d.hot) G.hot.add(h[1] * GRID + h[0]);
+  G.wave = d.wave || G.wave; G.syn = d.syn || 0; G.dec = d.dec || 0;
+  G.goal = d.goal || G.goal; G.entropy = d.entropy || 0;
+  G.portal = d.portal || G.portal;
+  if (d.winner) G.winner = d.winner; else if ("winner" in d) G.winner = null;
+  $("goalText").textContent = G.portal ? "Вихід · " + Math.round(G.portal.y) + "м" : (G.goal.done ? "Зроблено: " + G.goal.name : "Z" + G.goal.rank + " " + G.goal.name);
+  $("waveText").textContent = G.wave.num + " · ⏳ " + G.wave.timer + "с";
+  $("entText").textContent = G.entropy.toFixed(2);
+  $("synText").textContent = G.syn;
+  $("decText").textContent = G.dec;
+}
+
+/* ============ player objects ============ */
 function spawnPoint() {
   return { x: rnd(-ARENA + 2, ARENA - 2), z: rnd(-ARENA + 2, ARENA - 2) };
 }
 
-/* ============ player objects ============ */
 function addPlayer(id, name, isMe, initPos) {
+  const existing = G.players.get(id);
+  if (existing) return existing;   // id унікальний на з'єднання — ніколи не створюємо двічі
   const sp = initPos && typeof initPos.x === "number" ? { x: initPos.x, z: initPos.z } : spawnPoint();
   const p = {
-    id, name, connId: null,
+    id, name, connId: null, joinedAt: performance.now(),
     x: sp.x, y: initPos && typeof initPos.y === "number" ? initPos.y : 0, z: sp.z, vx: 0, vy: 0, vz: 0,
     yaw: initPos && typeof initPos.yaw === "number" ? initPos.yaw : rnd(0, Math.PI * 2), pitch: initPos && typeof initPos.pitch === "number" ? initPos.pitch : 0,
-    hp: MAX_HP, alive: true, frags: 0, respawnAt: 0,
-    lastFire: false, lastShotAt: 0, inp: { f: 0, s: 0, jump: false },
-    isMe,
+    hp: MAX_HP, alive: true, frags: 0, respawnAt: 0, mode: 0,
+    lastFire: false, lastShotAt: 0, isMe, authX: undefined, authZ: undefined,
   };
   G.players.set(id, p);
   if (!isMe) makeMesh(p);
@@ -513,12 +765,10 @@ function makeMesh(p) {
   );
   body.position.y = PLAYER_H / 2;
   g.add(body);
-  // facing indicator
   const nose = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.3, 8), new THREE.MeshStandardMaterial({ color: 0xffd166 }));
   nose.rotation.x = Math.PI / 2;
   nose.position.set(0, PLAYER_H / 2, 0.55);
   g.add(nose);
-  // name label
   const cv = document.createElement("canvas");
   cv.width = 256; cv.height = 64;
   const ctx = cv.getContext("2d");
@@ -531,82 +781,306 @@ function makeMesh(p) {
   spr.scale.set(2.4, 0.6, 1);
   spr.position.y = PLAYER_H + 0.5;
   g.add(spr);
+  // intent visuals: action beam + mode ring (затримка = фіча: видно, що гравець робив мить тому)
+  const bGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+  p.beam = new THREE.Line(bGeo, new THREE.LineBasicMaterial({ color: 0x2fd86b, transparent: true, opacity: 0.45 }));
+  p.beam.visible = false;
+  G.scene.add(p.beam);
+  p.ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.6, 0.75, 24),
+    new THREE.MeshBasicMaterial({ color: 0x2fd86b, transparent: true, opacity: 0.75, side: THREE.DoubleSide })
+  );
+  p.ring.rotation.x = -Math.PI / 2;
+  p.ring.visible = false;
+  G.scene.add(p.ring);
   p.mesh = g;
   G.scene.add(g);
 }
 
 function removeMesh(p) {
   if (p.mesh) { G.scene.remove(p.mesh); p.mesh = null; }
+  if (p.beam) { G.scene.remove(p.beam); p.beam = null; }
+  if (p.ring) { G.scene.remove(p.ring); p.ring = null; }
 }
 
-/* ============ state apply (guests + host render) ============ */
-function applyState(d) {
-  for (const sp of d.ps) {
-    let p = G.players.get(sp.id);
-    if (!p) { p = addPlayer(sp.id, sp.name, sp.id === G.myId); }
-    // update remote targets
-    if (p.isMe) {
-      const own = sp.id === G.myId;
-      if (own) {
-        // remember last authority position (for prediction clamp on guest)
-        p.authX = sp.x; p.authZ = sp.z;
-        // smooth reconciliation: pull toward authority, hard-snap only on big jumps (respawn/teleport)
-        const dx = sp.x - p.x, dz = sp.z - p.z;
-        const dist = Math.hypot(dx, dz);
-        if (dist > 6 || p.y > sp.y + 2) {
-          p.x = sp.x; p.y = sp.y; p.z = sp.z; p.vx = p.vy = p.vz = 0;
-        } else if (dist > 0.01) {
-          const k = Math.min(1, 0.18 + dist * 0.03);
-          p.x += dx * k; p.z += dz * k;
-        }
-        p.hp = sp.hp; p.alive = sp.alive; p.frags = sp.frags;
-        if (sp.alive && sp.y === 0 && p.vy === 0 && Math.abs(p.y - 0) > 1.5) { p.y = sp.y; }
-      }
-    } else {
-      p.hp = sp.hp; p.alive = sp.alive; p.frags = sp.frags;
-      p.tx = sp.x; p.ty = sp.y; p.tz = sp.z; p.yaw = sp.yaw;
-      if (!p.mesh) makeMesh(p);
-      if (p.mesh) {
-        if (!p.alive) p.mesh.visible = false;
-        else {
-          p.mesh.visible = true;
-          const k = Math.min(1, 12 * (G.clock.getDelta ? 1 / 60 : 0.016));
-          const lerpK = 1 - Math.pow(0.001, 1 / 60);
-          p.mesh.position.x += (p.tx - p.mesh.position.x) * lerpK;
-          p.mesh.position.y += (p.ty + PLAYER_H / 2 - p.mesh.position.y) * lerpK;
-          p.mesh.position.z += (p.tz - p.mesh.position.z) * lerpK;
-          p.mesh.rotation.y = p.yaw;
-        }
-      }
-    }
+/* ============ world render ============ */
+const dummy = new THREE.Object3D();
+const tmpCol = new THREE.Color();
+// підписи елементів над клітинами сполук (спрайти з канвас-текстурою, кеш за символом)
+G.molLabels = new Map();
+G._labelTex = new Map();
+function labelTexture(sym) {
+  let tex = G._labelTex.get(sym);
+  if (tex) return tex;
+  const cv = document.createElement("canvas");
+  cv.width = 128; cv.height = 128;
+  const ctx = cv.getContext("2d");
+  ctx.clearRect(0, 0, 128, 128);
+  ctx.fillStyle = "rgba(8,12,20,0.78)";
+  ctx.beginPath(); ctx.arc(64, 64, 54, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#4ec9ff"; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.arc(64, 64, 54, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 60px system-ui, sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(sym, 64, 66);
+  tex = new THREE.CanvasTexture(cv);
+  G._labelTex.set(sym, tex);
+  return tex;
+}
+function setMolLabel(i, sym, h) {
+  let s = G.molLabels.get(i);
+  if (!s) {
+    s = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture(sym), transparent: true, depthWrite: false }));
+    s.scale.set(1.15, 1.15, 1);
+    G.scene.add(s);
+    G.molLabels.set(i, s);
+    s._sym = null;
   }
-  // respawn countdown for own death
-  if (G.myId) {
-    const me = G.players.get(G.myId);
-    if (me && !me.alive) {
-      G.deadUntil = Math.max(G.deadUntil, (me.respawnAt || 0));
-      $("dead").classList.add("show");
-      const left = Math.max(0, Math.ceil((G.deadUntil - performance.now()) / 1000));
-      $("deadCnt").textContent = "відродження за " + left + "...";
-    } else {
-      $("dead").classList.remove("show");
+  if (s._sym !== sym) {
+    s.material.map = labelTexture(sym);
+    s.material.needsUpdate = true;
+    s._sym = sym;
+  }
+  const cx = i % GRID, cy = (i / GRID) | 0;
+  s.position.set(cellX(cx), h + 0.95, cellZ(cy));
+}
+function removeMolLabel(i) {
+  const s = G.molLabels.get(i);
+  if (s) { G.scene.remove(s); s.material.dispose(); G.molLabels.delete(i); }
+}
+
+function updateCells() {
+  if (!G.grid || !G.cells) return;
+  if (!G.prevGrid) {
+    G.prevGrid = new Uint8Array(N); G.prevEnt = new Uint8Array(N); G.prevMol = new Uint8Array(N); G.prevBond = new Uint8Array(N); G.cellH = new Float32Array(N);
+    for (let i = 0; i < N; i++) G.cellH[i] = -1;
+    if (!G.molSeen) G.molSeen = new Set();
+  }
+  const now = performance.now();
+  const pg = G.prevGrid, pe = G.prevEnt, pm = G.prevMol, pb = G.prevBond, ch = G.cellH, g = G.grid, e = G.entQ || pe;
+  const mq = G.molQ, bq = G.bondQ;
+  let any = false;
+  for (let i = 0; i < N; i++) {
+    const z = g[i];
+    const targetH = Math.max(0.08, (z - 1) * H_CELL);
+    const isHot = G.hot.has(i);
+    const mi = mq ? mq[i] : 0, bi = bq ? bq[i] : 0;
+    if (pg[i] === z && Math.abs(e[i] - pe[i]) <= 6 && Math.abs(ch[i] - targetH) <= 0.01 && !isHot && mi === pm[i] && Math.abs(bi - pb[i]) <= 3) continue;
+    any = true;
+    // smooth growth / melting
+    if (ch[i] < 0) ch[i] = targetH;
+    else ch[i] += (targetH - ch[i]) * 0.3;
+    if (Math.abs(ch[i] - targetH) < 0.005) ch[i] = targetH;
+    const h = ch[i];
+    dummy.position.set(cellX(i % GRID), h / 2, cellZ((i / GRID) | 0));
+    dummy.scale.set(1, h, 1);
+    dummy.rotation.set(0, 0, 0);
+    dummy.updateMatrix();
+    G.cells.setMatrixAt(i, dummy.matrix);
+    const base = PAL[z] || PAL[1];
+    const en = e[i] / 255;
+    let r = base[0] * (1 - 0.45 * en), gg = base[1] * (1 - 0.45 * en), bb = base[2] * (1 - 0.45 * en);
+    if (mi > 0) {
+      // сполука зафіксована: колір речовини, світіння = сила зв'язку
+      const mc = MOL_COLORS[mi] || [255, 255, 255];
+      const glow = 0.45 + 0.55 * (bi / 255);
+      const pulse = 0.85 + 0.15 * Math.sin(now / 350 + i);
+      r = mc[0] * glow * pulse; gg = mc[1] * glow * pulse; bb = mc[2] * glow * pulse;
+      // тост про утворення (раз на клітину, поки сполука жива)
+      if (pm[i] === 0 && !G.molSeen.has(i)) {
+        G.molSeen.add(i);
+        toast("🔗 " + (MOL_NAMES_C[mi] || "Сполука") + " утворилась — тепер її важче розібрати!");
+      }
+    } else if (isHot) {
+      const pulse = 0.5 + 0.5 * Math.sin(now / 400 + i);
+      r = Math.min(255, r + 80 * pulse); gg = Math.min(255, gg + 80 * pulse); bb = Math.min(255, bb + 80 * pulse);
     }
-    if (me) {
-      $("hpFill").style.width = Math.max(0, me.hp) + "%";
-      $("hpFill").style.background = me.hp > 50 ? "#2fd86b" : me.hp > 25 ? "#ffd166" : "#ff5c5c";
-      $("fragsVal").textContent = me.frags;
-    }
+    // підпис елемента (H, C, N, O...) — на КОЖНІЙ клітині-атомі, не лише в молекулах
+    if (z >= 2) setMolLabel(i, ELEM[z] || "", ch[i]);
+    else removeMolLabel(i);
+    tmpCol.setRGB(r / 255, gg / 255, bb / 255);
+    G.cells.setColorAt(i, tmpCol);
+    pg[i] = z; pe[i] = e[i]; pm[i] = mi; pb[i] = bi;
+    if (mi === 0) G.molSeen.delete(i);
+  }
+  if (any) {
+    G.cells.instanceMatrix.needsUpdate = true;
+    if (G.cells.instanceColor) G.cells.instanceColor.needsUpdate = true;
   }
 }
 
-/* ============ tracers / fx ============ */
-function spawnTracer(sx, sy, sz, x1, y1, z1) {
+function updateAgents(list) {
+  const seen = new Set();
+  let k = 0;
+  for (const a of list) {
+    seen.add(a.id);
+    let g = G.agents.get(a.id);
+    if (!g) {
+      g = G.agentPool[k] || G.agentPool[G.agentPool.length - 1];
+      k++;
+      g._ang = 0;
+      G.agents.set(a.id, g);
+    }
+    g.visible = true;
+    const c = AGENT_COLORS[a.type] || 0x2fd86b;
+    g.children[0].material.color.setHex(a.panic ? 0xff5c5c : c);
+    const bob = 0.03 * Math.sin(performance.now() / 220 + a.id.length);
+    g.position.set(cellX(a.gx), bob, cellZ(a.gy));
+    // face where the citizen WANTS to go (server heading) — smooth, no jitter
+    const hx = a.h[0] || 0, hy = a.h[1] || 1;
+    if (hx * hx + hy * hy > 1e-6) {
+      const target = Math.atan2(hx, hy);
+      let diff = target - g._ang;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      g._ang += diff * 0.25;
+      g.rotation.y = g._ang;
+    }
+  }
+  for (const [id, g] of G.agents) {
+    if (!seen.has(id)) { g.visible = false; G.agents.delete(id); }
+  }
+}
+
+function updateAnoms(list) {
+  const seen = new Set();
+  let k = 0;
+  const now = performance.now();
+  for (const a of list) {
+    seen.add(a.id);
+    let m = G.anoms.get(a.id);
+    if (!m) {
+      m = G.anomPool[k] || G.anomPool[G.anomPool.length - 1];
+      k++;
+      G.anoms.set(a.id, m);
+    }
+    m.visible = true;
+    const pulse = 1 + 0.06 * Math.sin(now / 300 + a.id.length);
+    m.scale.setScalar(pulse);
+    m.rotation.y = now / 500;
+    m.position.set(cellX(a.gx), 0, cellZ(a.gy));
+    const core = m.children[0];
+    core.material.emissiveIntensity = 0.8 + 0.25 * Math.sin(now / 260);
+    const ring = m.children[1];
+    ring.scale.setScalar(1 + 0.12 * Math.sin(now / 400 + a.id.length));
+    ring.material.opacity = 0.4 + 0.2 * Math.sin(now / 350 + a.id.length);
+  }
+  for (const [id, m] of G.anoms) {
+    if (!seen.has(id)) { m.visible = false; G.anoms.delete(id); }
+  }
+}
+
+function updateMols(list) {
+  const seen = new Set();
+  let k = 0;
+  const now = performance.now();
+  for (const a of list) {
+    seen.add(a.id);
+    let m = G.mols.get(a.id);
+    if (!m) {
+      m = { g: G.molPool[k] || G.molPool[G.molPool.length - 1], type: 0 };
+      k++;
+      G.mols.set(a.id, m);
+    }
+    m.g.visible = true;
+    if (m.type !== a.type) {
+      m.type = a.type;
+      const mc = MOL_COLORS[a.type] || [255, 255, 255];
+      const c = new THREE.Color(mc[0] / 255, mc[1] / 255, mc[2] / 255);
+      m.g.children[0].material.color.copy(c);
+      m.g.children[0].material.emissive.copy(c);
+      m.g.children[1].material.color.copy(c);
+      m.g.children[2].material.color.copy(c);
+    }
+    const bob = 0.15 * Math.sin(now / 700 + a.bob);
+    m.g.position.set(a.x, a.y + bob, a.z);
+    m.g.scale.setScalar(a.r / 1.0);
+    m.g.children[1].rotation.z = now / 900;
+    m.g.children[2].rotation.x = now / 1300;
+    // нестабільна молекула блимає червоним
+    const unstable = a.stable < 60;
+    m.g.children[0].material.emissiveIntensity = unstable ? (0.4 + 0.5 * Math.abs(Math.sin(now / 120))) : 0.25;
+  }
+  for (const [id, m] of G.mols) {
+    if (!seen.has(id)) { m.g.visible = false; G.mols.delete(id); }
+  }
+}
+
+/* ============ fx ============ */
+function spawnTracer(sx, sy, sz, x1, y1, z1, color) {
   const geo = new THREE.BufferGeometry().setFromPoints([
     new THREE.Vector3(sx, sy, sz), new THREE.Vector3(x1, y1, z1)
   ]);
-  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.9 }));
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 }));
   G.scene.add(line);
   G.tracers.push({ line, t: 0 });
+}
+
+function fxBoom(x, z, r, kind) {
+  const ring = G.rings.find((q) => q.t >= q.life) || G.rings[0];
+  ring.t = 0;
+  ring.life = 0.6;
+  ring.max = r * CELL + 2;
+  ring.mesh.visible = true;
+  ring.mesh.position.set(x, 0.08, z);
+  ring.color = kind === "slag" ? 0xff8a3c : kind === "anom" ? 0xa84fd8 : 0xffffff;
+  ring.mesh.material.color.setHex(ring.color);
+  emitParts(x, 1, z, kind === "slag" ? 0xff8a3c : 0xc08bff, 16 + r * 5, 2.5 + r);
+}
+
+function fxSynth(x, z, rank) {
+  const ring = G.rings.find((q) => q.t >= q.life) || G.rings[0];
+  ring.t = 0;
+  ring.life = 0.6;
+  ring.max = 5;
+  ring.mesh.visible = true;
+  ring.mesh.position.set(x, 0.08, z);
+  ring.color = 0x3fe08a;
+  ring.mesh.material.color.setHex(ring.color);
+  emitParts(x, 1, z, 0x3fe08a, 16, 2.6);
+}
+
+function emitParts(x, y, z, color, n, sp) {
+  const arr = G.ptsGeo.attributes.position.array;
+  let placed = 0;
+  for (const p of G.parts) {
+    if (p.life <= 0 && placed < n) {
+      const a = Math.random() * Math.PI * 2, u = Math.random() * Math.PI;
+      p.x = x; p.y = y; p.z = z;
+      p.vx = Math.cos(a) * Math.cos(u) * sp;
+      p.vy = Math.abs(Math.sin(u)) * sp * 1.2;
+      p.vz = Math.sin(a) * Math.cos(u) * sp;
+      p.life = 1; p.max = 0.6 + Math.random() * 0.4;
+      p.col = color;
+      placed++;
+    }
+  }
+  if (placed < n) {
+    for (let i = 0; i < n - placed; i++) {
+      const a = Math.random() * Math.PI * 2, u = Math.random() * Math.PI;
+      G.parts.push({ x, y, z, vx: Math.cos(a) * Math.cos(u) * sp, vy: Math.abs(Math.sin(u)) * sp * 1.2, vz: Math.sin(a) * Math.cos(u) * sp, life: 1, max: 0.6 + Math.random() * 0.4, col: color });
+    }
+  }
+  if (G.parts.length > 600) G.parts.splice(0, G.parts.length - 600);
+}
+
+function stepParts(dt) {
+  const arr = G.ptsGeo.attributes.position.array;
+  const N2 = Math.min(G.parts.length, 600);
+  let n = 0;
+  for (let i = 0; i < G.parts.length; i++) {
+    const p = G.parts[i];
+    if (p.life > 0) {
+      p.life -= dt / p.max;
+      p.vy -= 14 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+      if (n < 600) { arr[n * 3] = p.x; arr[n * 3 + 1] = p.y; arr[n * 3 + 2] = p.z; n++; }
+    }
+  }
+  for (let i = n; i < 600; i++) { arr[i * 3 + 1] = -100; }
+  G.ptsGeo.attributes.position.needsUpdate = true;
+  G.pts.material.opacity = 0.9;
 }
 
 function showHitmark() {
@@ -625,12 +1099,215 @@ function kfAdd(text) {
   while ($("killfeed").children.length > 4) $("killfeed").firstChild.remove();
 }
 
+function escapeHtml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+let toastTimer = null;
+function toast(text) {
+  const el = $("status");
+  el.textContent = text;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { if (el.textContent === text) el.textContent = ""; }, 3500);
+}
+
+/* floating "+XP" texts */
+G.floats = [];
+function addFloat(text, color, wx, wz) {
+  const el = document.createElement("div");
+  el.className = "flt";
+  el.textContent = text;
+  el.style.color = color;
+  document.body.appendChild(el);
+  G.floats.push({ el, wx, wz, t: 0, life: 1.2 });
+  while (G.floats.length > 10) {
+    const old = G.floats.shift();
+    if (old.el.parentNode) old.el.parentNode.removeChild(old.el);
+  }
+}
+function stepFloats(dt) {
+  const w = window.innerWidth, h = window.innerHeight;
+  const v = new THREE.Vector3();
+  for (let i = G.floats.length - 1; i >= 0; i--) {
+    const f = G.floats[i];
+    f.t += dt;
+    if (f.t > f.life) { f.el.remove(); G.floats.splice(i, 1); continue; }
+    v.set(f.wx, 1.3 + f.t * 0.8, f.wz).project(G.camera);
+    if (v.z > 1) { f.el.style.display = "none"; continue; }
+    f.el.style.display = "block";
+    f.el.style.left = ((v.x * 0.5 + 0.5) * w) + "px";
+    f.el.style.top = ((-v.y * 0.5 + 0.5) * h - f.t * 34) + "px";
+    f.el.style.opacity = Math.max(0, 1 - f.t / f.life);
+  }
+}
+function fxRingAt(x, z, max, color) {
+  const ring = G.rings.find((q) => q.t >= q.life) || G.rings[0];
+  ring.t = 0; ring.life = 0.8; ring.max = max;
+  ring.mesh.visible = true;
+  ring.mesh.position.set(x, 0.1, z);
+  ring.color = color;
+  ring.mesh.material.color.setHex(color);
+}
+
+/* ============ mode ============ */
+function setMode(m) {
+  G.input.mode = m ? 1 : 0;
+  const chip = $("modeChip"), tBtn = $("modeBtn"), dBtn = $("modeBtnD");
+  chip.textContent = G.input.mode ? "⚔️ ВІЙНА" : "🕊 МИР";
+  chip.classList.toggle("war", G.input.mode === 1);
+  if (tBtn) tBtn.textContent = G.input.mode ? "⚔️" : "🕊";
+  if (dBtn) { dBtn.textContent = G.input.mode ? "⚔️" : "🕊"; dBtn.classList.toggle("war", G.input.mode === 1); }
+  document.body.classList.toggle("war", G.input.mode === 1);
+  $("actBtn").classList.toggle("war", G.input.mode === 1);
+  const col = G.input.mode ? 0xff5c5c : 0x2fd86b;
+  if (G.laser) G.laser.material.color.setHex(col);
+  if (G.marker) G.marker.material.color.setHex(col);
+  if (G.tRing) G.tRing.material.color.setHex(col);
+}
+function toggleMode() { if (document.body.classList.contains("editLayout")) return; setMode(1 - G.input.mode); }
+
+/* ============ rules ============ */
+function openRules() { $("rules").classList.add("open"); }
+function closeRules() { $("rules").classList.remove("open"); }
+$("rulesGo").addEventListener("click", closeRules);
+$("rulesBtn").addEventListener("click", openRules);
+$("helpBtn").addEventListener("click", openRules);
+
+/* ============ settings menu ============ */
+function openSettings() { syncSettingsUI(); syncLayoutUI(); $("settings").classList.add("open"); }
+function closeSettings() { $("settings").classList.remove("open"); }
+
+function syncSettingsUI() {
+  const c = G.cfg;
+  if (!c) return;
+  const map = { portalMin: "cfg_portalMin", portalMax: "cfg_portalMax", energyCap: "cfg_energyCap", energyRate: "cfg_energyRate", ascentV: "cfg_ascentV", gravityK: "cfg_gravityK", bots: "cfg_bots" };
+  for (const k in map) {
+    const el = $(map[k]);
+    if (el) el.value = c[k];
+  }
+  const isOwner = G.owner && G.owner === G.myId;
+  $("settingsLock").style.display = isOwner ? "none" : "block";
+  for (const k in map) {
+    const el = $(map[k]);
+    if (el) el.disabled = !isOwner;
+  }
+  $("cfgApply").style.display = isOwner ? "" : "none";
+}
+
+$("cfgApply").addEventListener("click", () => {
+  if (!G.owner || G.owner !== G.myId || !G.ws) return;
+  const get = (id) => parseFloat($(id).value);
+  const msg = { t: "cfg",
+    portalMin: get("cfg_portalMin"), portalMax: get("cfg_portalMax"),
+    energyCap: get("cfg_energyCap"), energyRate: get("cfg_energyRate"),
+    ascentV: get("cfg_ascentV"), gravityK: get("cfg_gravityK"), bots: get("cfg_bots") };
+  G.ws.send(JSON.stringify(msg));
+  toast("⚙️ Налаштування надіслано");
+});
+
+/* ============ layout: buttons & joystick ============ */
+const LAYOUT_KEY = "rego_layout";
+function defaultLayout() { return { side: "right", size: 1, joy: 1, pos: {} }; }
+function loadLayout() {
+  try { const s = localStorage.getItem(LAYOUT_KEY); if (s) return Object.assign(defaultLayout(), JSON.parse(s)); } catch (e) {}
+  return defaultLayout();
+}
+G.layout = loadLayout();
+function saveLayout() { try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(G.layout)); } catch (e) {} }
+function layPos(which) {
+  // дефолти залежать від орієнтації: портрет 390×844 vs ландшафт 844×390
+  const land = window.innerWidth > window.innerHeight;
+  const d = G.layout.side === "left"
+    ? (land ? { jump: { fx: 0.13, fy: 0.71 }, actions: { fx: 0.12, fy: 0.14 } }
+            : { jump: { fx: 0.14, fy: 0.86 }, actions: { fx: 0.13, fy: 0.58 } })
+    : (land ? { jump: { fx: 0.87, fy: 0.71 }, actions: { fx: 0.88, fy: 0.14 } }
+            : { jump: { fx: 0.72, fy: 0.86 }, actions: { fx: 0.75, fy: 0.58 } });
+  return d[which];
+}
+function setElPos(el, p) {
+  if (!el || !p) return;
+  // кламп по вʼюпорту — кнопка ніколи не вилізе за екран (навіть зі збереженою позицією)
+  const r = el.getBoundingClientRect();
+  const w = r.width || el.offsetWidth || 100;
+  const h = r.height || el.offsetHeight || 100;
+  el.style.left = Math.max(4, Math.min(p.fx * window.innerWidth, window.innerWidth - w - 4)) + "px";
+  el.style.top = Math.max(4, Math.min(p.fy * window.innerHeight, window.innerHeight - h - 4)) + "px";
+  el.style.right = "auto"; el.style.bottom = "auto";
+}
+function applyLayout() {
+  const L = G.layout;
+  document.documentElement.style.setProperty("--btnScale", L.size);
+  document.documentElement.style.setProperty("--joyScale", L.joy);
+  const actions = $("actions");
+  if (actions) {
+    actions.style.alignItems = L.side === "left" ? "flex-start" : "flex-end";
+    setElPos(actions, L.pos.actions || layPos("actions"));
+  }
+  setElPos($("jumpWrap"), L.pos.jump || layPos("jump"));
+}
+function syncLayoutUI() {
+  const L = G.layout;
+  $("lay_side").value = L.side;
+  $("lay_size").value = L.size;
+  $("lay_joy").value = L.joy;
+}
+$("lay_side").addEventListener("change", (e) => {
+  G.layout.side = e.target.value;
+  G.layout.pos = {};            // пресет руки замість ручних позицій
+  saveLayout(); applyLayout();
+});
+$("lay_size").addEventListener("input", (e) => { G.layout.size = parseFloat(e.target.value); saveLayout(); applyLayout(); });
+$("lay_joy").addEventListener("input", (e) => { G.layout.joy = parseFloat(e.target.value); saveLayout(); applyLayout(); });
+$("layEditBtn").addEventListener("click", () => { closeSettings(); document.body.classList.add("editLayout"); });
+$("layoutDone").addEventListener("click", () => { document.body.classList.remove("editLayout"); });
+
+// перетягування кнопок у режимі редагування
+let layoutDrag = null;
+function bindLayoutDrag() {
+  const draggables = [$("jumpWrap"), $("actions")];
+  for (const el of draggables) {
+    if (!el) continue;
+    el.addEventListener("pointerdown", (e) => {
+      if (!document.body.classList.contains("editLayout")) return;
+      e.preventDefault(); e.stopPropagation();
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      const r = el.getBoundingClientRect();
+      layoutDrag = { el, dx: e.clientX - r.left, dy: e.clientY - r.top };
+      el.classList.add("dragging");
+    });
+    el.addEventListener("pointermove", (e) => {
+      if (!layoutDrag || layoutDrag.el !== el) return;
+      e.preventDefault();
+      const rw = el.getBoundingClientRect().width, rh = el.getBoundingClientRect().height;
+      const x = clamp(e.clientX - layoutDrag.dx, 0, window.innerWidth - rw);
+      const y = clamp(e.clientY - layoutDrag.dy, 0, window.innerHeight - rh);
+      el.style.left = x + "px"; el.style.top = y + "px";
+      el.style.right = "auto"; el.style.bottom = "auto";
+    });
+    const endDrag = () => {
+      if (!layoutDrag || layoutDrag.el !== el) return;
+      layoutDrag = null;
+      el.classList.remove("dragging");
+      const key = el.id === "jumpWrap" ? "jump" : "actions";
+      const r = el.getBoundingClientRect();
+      G.layout.pos[key] = { fx: clamp(r.left / window.innerWidth, 0, 1), fy: clamp(r.top / window.innerHeight, 0, 1) };
+      saveLayout();
+    };
+    el.addEventListener("pointerup", endDrag);
+    el.addEventListener("pointercancel", endDrag);
+  }
+}
+bindLayoutDrag();
+applyLayout();
+window.addEventListener("resize", applyLayout);
+
 /* ============ input: desktop ============ */
 function bindDesktop() {
   const keys = {};
   window.addEventListener("keydown", (e) => {
     keys[e.code] = true;
     if (e.code === "Space") e.preventDefault();
+    if (e.code === "KeyQ" && G.running) setMode(1 - G.input.mode);
   });
   window.addEventListener("keyup", (e) => { keys[e.code] = false; });
   window.addEventListener("mousemove", (e) => {
@@ -640,20 +1317,38 @@ function bindDesktop() {
     me.yaw -= e.movementX * 0.0025;
     me.pitch = clamp(me.pitch - e.movementY * 0.0025, -1.5, 1.5);
   });
-  window.addEventListener("mousedown", (e) => { if (e.button === 0 && document.pointerLockElement) G.input.fire = true; });
-  window.addEventListener("mouseup", (e) => { if (e.button === 0) G.input.fire = false; });
+  window.addEventListener("mousedown", (e) => {
+    if (e.button === 0) G.input.act = true;
+    if (e.button === 2) G.input.ext = true;
+  });
+  window.addEventListener("mouseup", (e) => {
+    if (e.button === 0) G.input.act = false;
+    if (e.button === 2) G.input.ext = false;
+  });
+  window.addEventListener("contextmenu", (e) => e.preventDefault());
+  // екранна кнопка стрибка (миша/тап)
+  const jb = $("jumpBtn");
+  jb.addEventListener("mousedown", (e) => {
+    if (document.body.classList.contains("editLayout")) return;
+    e.stopPropagation(); G.input.jump = true; jb.classList.add("active");
+  });
+  window.addEventListener("mouseup", () => { G.input.jump = false; jb.classList.remove("active"); });
   G.renderer.domElement.addEventListener("click", () => {
     if (!G.running) return;
     if (document.pointerLockElement !== G.renderer.domElement) G.renderer.domElement.requestPointerLock();
   });
-  // poll keys -> input
   setInterval(() => {
     if (!G.running) return;
     const w = keys["KeyW"] || keys["ArrowUp"], s = keys["KeyS"] || keys["ArrowDown"];
     const a = keys["KeyA"] || keys["ArrowLeft"], d = keys["KeyD"] || keys["ArrowRight"];
-    G.input.f = (w ? 1 : 0) - (s ? 1 : 0);
-    G.input.s = (d ? 1 : 0) - (a ? 1 : 0);
-    G.input.jump = !!keys["Space"];
+    // клавіші натиснуті — пишемо рух; інакше скидаємо (крім активного тач-джойстика)
+    if (w || s || a || d || keys["Space"]) {
+      G.input.f = (w ? 1 : 0) - (s ? 1 : 0);
+      G.input.s = (d ? 1 : 0) - (a ? 1 : 0);
+      G.input.jump = !!keys["Space"];
+    } else if (!G.joyActive) {
+      G.input.f = 0; G.input.s = 0; G.input.jump = false;
+    }
   }, 16);
 }
 
@@ -662,19 +1357,24 @@ function bindTouch() {
   document.body.classList.add("touch");
   const joy = { id: null, bx: 0, by: 0, dx: 0, dy: 0 };
   const look = { id: null, lx: 0, ly: 0 };
+  let actTid = null, extTid = null, jumpTid = null;
   const base = $("joyBase"), knob = $("joyKnob");
+  const actBtn = $("actBtn"), extBtn = $("extBtn");
 
   window.addEventListener("touchstart", (e) => {
-    if (!G.running) return; // menu: let inputs/buttons work normally
-    // QR overlay must stay clickable even though the game already started under it
-    if (e.target && e.target.closest && e.target.closest("#qrOverlay")) return;
+    if (!G.running) return;
+    if (document.body.classList.contains("editLayout")) return;   // режим пересування кнопок
+    if (e.target && e.target.closest && (e.target.closest("#qrOverlay") || e.target.closest("#rules") || e.target.closest("#settings"))) return;
     for (const t of e.changedTouches) {
       const x = t.clientX, y = t.clientY;
-      const onFire = hitEl($("fireBtn"), x, y), onJump = hitEl($("jumpBtn"), x, y);
-      if (onFire) { G.input.fire = true; $("fireBtn").classList.add("active"); continue; }
-      if (onJump) { G.input.jump = true; continue; }
+      if (hitEl(actBtn, x, y)) { actTid = t.identifier; G.input.act = true; actBtn.classList.add("active"); continue; }
+      if (hitEl(extBtn, x, y)) { extTid = t.identifier; G.input.ext = true; extBtn.classList.add("active"); continue; }
+      if (hitEl($("jumpBtn"), x, y)) { jumpTid = t.identifier; G.input.jump = true; $("jumpBtn").classList.add("active"); continue; }
+      // тап по іншій HUD-кнопці (⚙️, ?, 🕊, .chip, .mcbtn) — НЕ чіпаємо, хай працює звичайний клік
+      if (e.target && e.target.closest && e.target.closest("button, .chip, a, input, select, #playersBox, [onclick]")) return;
       if (joy.id === null && x < window.innerWidth * 0.45) {
         joy.id = t.identifier; joy.bx = x; joy.by = y;
+        G.joyActive = true;
         base.style.left = (x - 60) + "px"; base.style.top = (y - 60) + "px";
         base.style.display = "block";
         continue;
@@ -686,7 +1386,8 @@ function bindTouch() {
 
   window.addEventListener("touchmove", (e) => {
     if (!G.running) return;
-    if (e.target && e.target.closest && e.target.closest("#qrOverlay")) return;
+    if (document.body.classList.contains("editLayout")) return;
+    if (e.target && e.target.closest && (e.target.closest("#qrOverlay") || e.target.closest("#rules") || e.target.closest("#settings"))) return;
     for (const t of e.changedTouches) {
       if (t.identifier === joy.id) {
         let dx = t.clientX - joy.bx, dy = t.clientY - joy.by;
@@ -694,7 +1395,7 @@ function bindTouch() {
         const max = 50;
         if (len > max) { dx = dx / len * max; dy = dy / len * max; }
         joy.dx = dx; joy.dy = dy;
-        knob.style.transform = "translate(" + (dx - 26) + "px," + (dy - 26) + "px)";
+        knob.style.transform = "translate(" + (dx - 26) + "px," + (dy - 26) + "px) scale(var(--joyScale,1))";
         const k = len > max ? 1 : len / max;
         G.input.s = (dx / max) * k;
         G.input.f = (-dy / max) * k;
@@ -714,13 +1415,15 @@ function bindTouch() {
     for (const t of e.changedTouches) {
       if (t.identifier === joy.id) {
         joy.id = null; joy.dx = 0; joy.dy = 0;
+        G.joyActive = false;
         G.input.f = 0; G.input.s = 0;
-        knob.style.transform = "translate(-50%,-50%)";
+        knob.style.transform = "translate(-50%,-50%) scale(var(--joyScale,1))";
         base.style.display = "none";
       }
       if (t.identifier === look.id) look.id = null;
-      if (hitEl($("fireBtn"), t.clientX, t.clientY)) { G.input.fire = false; $("fireBtn").classList.remove("active"); }
-      if (hitEl($("jumpBtn"), t.clientX, t.clientY)) G.input.jump = false;
+      if (t.identifier === actTid) { actTid = null; G.input.act = false; actBtn.classList.remove("active"); }
+      if (t.identifier === extTid) { extTid = null; G.input.ext = false; extBtn.classList.remove("active"); }
+      if (t.identifier === jumpTid) { jumpTid = null; G.input.jump = false; $("jumpBtn").classList.remove("active"); }
     }
   };
   window.addEventListener("touchend", endTouch);
@@ -728,12 +1431,101 @@ function bindTouch() {
 }
 
 function hitEl(el, x, y) {
+  if (!el) return false;
   const r = el.getBoundingClientRect();
   return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
 }
 
 function isTouchDevice() {
   return ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
+}
+
+/* ============ state apply ============ */
+function applyState(d) {
+  updateWorldMeta(d);
+  updateCells();
+  updateAgents(d.agents || []);
+  updateAnoms(d.anoms || []);
+  updateMols(d.mols || []);
+  for (const sp of d.ps) {
+    let p = G.players.get(sp.id);
+    if (!p) { p = addPlayer(sp.id, sp.name, sp.id === G.myId); }
+    if (p.isMe) {
+      // remember last authority position; camera follows authority (no prediction offset —
+      // "тіло окремо від камери" fix: aim/effects must match exactly where the server computes)
+      p.authX = sp.x; p.authY = sp.y; p.authZ = sp.z;
+      if (!p.alive && !sp.alive && p.wasAlive) G.deadUntil = performance.now() + RESPAWN * 1000;
+      p.wasAlive = sp.alive;
+      p.hp = sp.hp; p.alive = sp.alive; p.frags = sp.frags; p.mode = sp.mode;
+      p.xp = sp.xp || 0; p.level = sp.level || 1;
+      p.energy = sp.energy || 0;   // ← енергія з сервера (індикатор заповнюється)
+      // hard snap only on big jumps (respawn/teleport)
+      if (Math.abs(sp.x - p.x) > 6 || Math.abs(sp.z - p.z) > 6 || Math.abs(sp.y - p.y) > 4) {
+        p.x = sp.x; p.y = sp.y; p.z = sp.z; p.vx = p.vy = p.vz = 0;
+      }
+    } else {
+      p.hp = sp.hp; p.alive = sp.alive; p.frags = sp.frags;
+      p.act = !!sp.act; p.ext = !!sp.ext; p.mode = sp.mode || 0; p.level = sp.level || 1;
+      p.tx = sp.x; p.ty = sp.y; p.tz = sp.z; p.yaw = sp.yaw; p.pitch = sp.pitch;
+      if (!p.mesh) makeMesh(p);
+      if (p.mesh) {
+        if (!p.alive) p.mesh.visible = false;
+        else {
+          p.mesh.visible = true;
+          const lerpK = 1 - Math.pow(0.001, 1 / 60);
+          p.mesh.position.x += (p.tx - p.mesh.position.x) * lerpK;
+          p.mesh.position.y += (p.ty + PLAYER_H / 2 - p.mesh.position.y) * lerpK;
+          p.mesh.position.z += (p.tz - p.mesh.position.z) * lerpK;
+          p.mesh.rotation.y = p.yaw;
+        }
+      }
+    }
+  }
+  if (G.myId) {
+    const me = G.players.get(G.myId);
+    if (me && !me.alive) {
+      G.deadUntil = Math.max(G.deadUntil, performance.now() + RESPAWN * 1000);
+      $("dead").classList.add("show");
+      const left = Math.max(0, Math.ceil((G.deadUntil - performance.now()) / 1000));
+      $("deadCnt").textContent = "відродження за " + left + "...";
+    } else {
+      $("dead").classList.remove("show");
+    }
+    if (me) {
+      $("hpFill").style.width = Math.max(0, me.hp / maxHpClient(me.level) * 100) + "%";
+      $("hpFill").style.background = me.hp > 50 ? "#2fd86b" : me.hp > 25 ? "#ffd166" : "#ff5c5c";
+      $("fragsVal").textContent = me.frags;
+      // XP bar + level
+      if (me.level !== me._lvl) {
+        const was = me._lvl || 1;
+        me._lvl = me.level;
+        if (me.level > was) { toast("⬆️ Рівень " + me.level + "!"); fxRingAt(me.x, me.z, 7, 0xffd166); }
+      }
+      $("lvlVal").textContent = me.level;
+      const need = xpToNextClient(me.level);
+      $("xpFill").style.width = Math.max(0, Math.min(100, me.xp / need * 100)) + "%";
+      // energy (authority value; local prediction deducts on jump too)
+      G.myEnergy = me.energy || 0;
+      updateEnergyHUD();
+    }
+  }
+  // players intent list (хто в мирі, хто у війні, хто зараз діє)
+  let ph = "";
+  const seenIds = new Set();
+  for (const sp of d.ps) {
+    const isMe = sp.id === G.myId;
+    seenIds.add(sp.id);
+    ph += "<div class='prow" + (isMe ? " me" : "") + "'>" + (sp.mode ? "⚔️" : "🕊") + " " + escapeHtml(sp.name) + (sp.act ? " <b>▶</b>" : "") + "</div>";
+  }
+  $("playersBox").innerHTML = ph;
+  // self-heal: викидаємо remote-гравців, яких сервер уже не слає (leave загубився в мережі)
+  const nowMs = performance.now();
+  for (const [id, p] of G.players) {
+    if (!p.isMe && !seenIds.has(id) && nowMs - (p.joinedAt || 0) > 1000) {
+      G.players.delete(id);
+      removeMesh(p);
+    }
+  }
 }
 
 /* ============ loop ============ */
@@ -743,41 +1535,67 @@ function startGame() {
   requestAnimationFrame(loop);
 }
 
+function groundTargetFor(p) {
+  const cy = Math.cos(p.pitch), sy = Math.sin(p.pitch);
+  const dx = -Math.sin(p.yaw) * cy, dy = sy, dz = -Math.cos(p.yaw) * cy;
+  const oy = p.y + EYE;
+  // влучання в просторову молекулу (сфера)
+  let bestT = 1e9, bestMol = null;
+  for (const [id, m] of G.mols) {
+    const g = m.g;
+    const mx = p.x - g.position.x, my = oy - g.position.y, mz = p.z - g.position.z;
+    const b = mx * dx + my * dy + mz * dz;
+    const c = mx * mx + my * my + mz * mz - 0.75 * 0.75 * (m.g.scale.x || 1) ** 2;
+    const disc = b * b - c;
+    if (disc < 0) continue;
+    const t = -b - Math.sqrt(disc);
+    if (t > 0.3 && t < bestT) { bestT = t; bestMol = id; }
+  }
+  if (bestMol !== null) {
+    return { tx: p.x + dx * bestT, tz: p.z + dz * bestT, mol: bestMol, dist: bestT };
+  }
+  let tx, tz;
+  if (dy < -0.001) {
+    const t = -oy / dy;
+    tx = p.x + dx * t; tz = p.z + dz * t;
+  } else {
+    tx = p.x + dx * 8; tz = p.z + dz * 8;
+  }
+  return { tx, tz, mol: null, dist: Math.hypot(tx - p.x, tz - p.z) };
+}
+
 function loop() {
   requestAnimationFrame(loop);
   const now = performance.now();
   const dt = G.clock.getDelta();
 
-  // host authority tick
-  if (G.isHost) hostTick(now);
-
-  // guest sends input + local prediction ONLY while receiving fresh state
-  // (dead WebRTC channel = no prediction, otherwise player drifts away from model)
-  if (!G.isHost && G.conn && G.conn.open && G.myId) {
+  if (G.ws && G.ws.readyState === 1 && G.myId) {
     const me = G.players.get(G.myId);
     const stateFresh = performance.now() - G.lastStateAt < 600;
     if (me && me.alive && stateFresh) {
-      // prediction clamp: slow down as we drift from authority (kills "leaving your body")
-      let pk = 1;
+      // camera follows server authority smoothly — no local prediction, aim is exact
       if (me.authX !== undefined) {
-        const drift = Math.hypot(me.x - me.authX, me.z - me.authZ);
-        pk = Math.max(0, 1 - drift / 3);
+        const k = Math.min(1, 18 * dt);
+        me.x += (me.authX - me.x) * k;
+        me.y += (me.authY - me.y) * k;
+        me.z += (me.authZ - me.z) * k;
+        if (Math.abs(me.x - me.authX) < 0.02) me.x = me.authX;
+        if (Math.abs(me.y - me.authY) < 0.02) me.y = me.authY;
+        if (Math.abs(me.z - me.authZ) < 0.02) me.z = me.authZ;
       }
-      movePlayer(me, { f: G.input.f * pk, s: G.input.s * pk, jump: G.input.jump }, dt);
     }
     G.inAcc += dt;
     if (G.inAcc >= 1 / INPUT_HZ) {
       G.inAcc = 0;
       if (me) {
         try {
-          G.conn.send({ t: "i", id: G.myId, yaw: me.yaw, pitch: me.pitch, i: { f: G.input.f, s: G.input.s, j: G.input.jump, fire: G.input.fire } });
+          G.ws.send(JSON.stringify({ t: "i", yaw: me.yaw, pitch: me.pitch, f: G.input.f, s: G.input.s, j: G.input.jump, act: G.input.act, ext: G.input.ext, mode: G.input.mode }));
         } catch (e) {}
       }
     }
-    // guest ping for RTT display
     if (now - G.rttLastPingAt > 2000) {
       G.rttLastPingAt = now;
-      try { G.conn.send({ t: "ping", ts: now }); } catch (e) {}
+      try { G.ws.send(JSON.stringify({ t: "ping", ts: now })); } catch (e) {}
     }
     if (now - G.rttTimer > 500) {
       G.rttTimer = now;
@@ -786,58 +1604,18 @@ function loop() {
     }
   }
 
-  // host: show RTT (first conn) too
-  if (G.isHost) {
-    if (now - G.rttTimer > 500) {
-      G.rttTimer = now;
-      const el = $("rtt");
-      if (el) el.textContent = G.conns.size ? "хост" : "—";
-    }
-  }
-
-  // host sends own input (itself as player)
-  if (G.isHost && G.myId) {
-    const me = G.players.get(G.myId);
-    if (me && me.alive) {
-      me.inp = { f: G.input.f, s: G.input.s, jump: G.input.jump };
-      if (G.input.fire && !me.lastFire && now - me.lastShotAt > FIRE_CD * 1000) {
-        me.lastFire = true; me.lastShotAt = now;
-        const res = castShot(me);
-        spawnTracer(me.x, me.y + EYE, me.z, res.x1, res.y1, res.z1);
-        const victim = res.hitId ? G.players.get(res.hitId) : null;
-        if (victim) {
-          victim.hp -= DMG;
-          if (victim.hp <= 0 && victim.alive) {
-            victim.alive = false; victim.hp = 0;
-            victim.respawnAt = now + RESPAWN * 1000;
-            victim.vy = 6; victim.y = 0.5;
-            me.frags++;
-            broadcast({ t: "kill", killer: me.name, victim: victim.name, kfrags: me.frags });
-            kfAdd(me.name + " 💀 " + victim.name);
-          }
-          showHitmark();
-        }
-        broadcast({ t: "shot", sx: me.x, sy: me.y + EYE, sz: me.z, x1: res.x1, y1: res.y1, z1: res.z1, hitId: res.hitId, shooterId: me.id });
-      } else if (!G.input.fire) me.lastFire = false;
-    }
-  }
-
-  // apply state for guests
-  if (!G.isHost && G.stateBuf) {
+  if (G.stateBuf) {
     if (performance.now() - G.lastStateAt < 300) applyState(G.stateBuf);
     G.stateBuf = null;
   }
 
-  // watchdog: guest with dead channel (no state for 5s) auto-reconnects
-  if (!G.isHost && G.myId && G.running) {
-    if (performance.now() - G.lastStateAt > 5000) {
-      setStatus("З'єднання втрачено — перепідключаємось...");
-      setTimeout(() => location.reload(), 400);
-      return;
-    }
+  if (G.myId && G.running && performance.now() - G.lastStateAt > 5000) {
+    setStatus("З'єднання втрачено — перепідключаємось...");
+    setTimeout(() => location.reload(), 400);
+    return;
   }
 
-  // camera follow own player
+  // camera + aim visuals
   if (G.myId) {
     const me = G.players.get(G.myId);
     if (me) {
@@ -845,20 +1623,265 @@ function loop() {
       G.camera.rotation.order = "YXZ";
       G.camera.rotation.y = me.yaw;
       G.camera.rotation.x = me.pitch;
+      // own aura — рівень видно під ногами
+      G.aura.visible = me.alive;
+      if (me.alive) {
+        const lvl = me.level || 1;
+        G.aura.position.set(me.x, 0.05, me.z);
+        G.aura.scale.setScalar(1 + (lvl - 1) * 0.18);
+        G.aura.material.color.setHex(lvl >= 6 ? 0xffd166 : lvl >= 3 ? 0x3fe08a : 0x2fd86b);
+        G.aura.material.opacity = 0.35 + 0.1 * Math.sin(now / 500);
+      }
+      if (me.alive && (G.input.act || G.input.ext)) {
+        const tg = groundTargetFor(me);
+        const dist = Math.hypot(tg.tx - me.x, tg.tz - me.z);
+        const col = G.input.ext ? 0xffb84d : (G.input.mode ? 0xff5c5c : 0x2fd86b);
+        const onMol = !!tg.mol;
+        // laser: cylinder from eye to target (молекула = точка влучання, інакше земля)
+        G.laser.visible = true;
+        const ax = me.x, ay = me.y + EYE, az = me.z;
+        const bx = tg.tx, by = onMol ? 0.1 : 0.1, bz = tg.tz;
+        const len = Math.hypot(bx - ax, by - ay, bz - az);
+        G.laser.position.set((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2);
+        G.laser.scale.set(1 + (me.level - 1) * 0.15, len, 1);
+        G.laser.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(bx - ax, by - ay, bz - az).normalize());
+        G.laser.material.color.setHex(onMol && !G.input.ext && !G.input.mode ? 0xffd166 : col);
+        G.laser.material.opacity = 0.55 + 0.3 * Math.sin(now / 90);
+        // marker at the target (молекула або клітинка) + big pulsing ring
+        let mx, mz;
+        if (onMol) {
+          const mm = G.mols.get(tg.mol);
+          if (mm) { mx = mm.g.position.x; mz = mm.g.position.z; }
+        }
+        const cxi = toCell(mx !== undefined ? mx : tg.tx), czi = toCell(mz !== undefined ? mz : tg.tz);
+        G.marker.visible = true;
+        G.marker.position.set(cellX(cxi), 1.15, cellZ(czi));
+        G.marker.scale.set(1, 2.3, 1);
+        G.marker.material.color.setHex(onMol && !G.input.ext && !G.input.mode ? 0xffd166 : col);
+        G.tRing.visible = true;
+        const s = 1 + 0.22 * Math.sin(now / 140);
+        G.tRing.scale.setScalar(s);
+        G.tRing.position.set(cellX(cxi), 0.07, cellZ(czi));
+        G.tRing.material.color.setHex(onMol && !G.input.ext && !G.input.mode ? 0xffd166 : col);
+        // sparks at the target
+        G.sparkT = (G.sparkT || 0) + dt;
+        if (G.sparkT > 0.12) {
+          G.sparkT = 0;
+          emitParts(cellX(cxi), 0.6, cellZ(czi), col, 2, 1.4);
+        }
+        // action hint + distance warning
+        const hint = $("actHint");
+        if (dist > 9) {
+          hint.textContent = "⚠️ ЗАДАЛЕКО — підійди ближче!";
+          hint.classList.add("far");
+        } else if (onMol && !G.input.ext && !G.input.mode) {
+          hint.textContent = "⚛ ПРОКАЧУЮ АТОМ МОЛЕКУЛИ…";
+          hint.classList.remove("far");
+          hint.style.color = "#ffd166";
+          hint.style.borderColor = "rgba(255,209,102,.5)";
+        } else {
+          hint.textContent = G.input.ext ? "⛏ ВИКАЧУЮ ⚡…" : (G.input.mode ? "⚔️ АТАКА…" : "🫳 УЩІЛЬНЮЮ…");
+          hint.classList.remove("far");
+          hint.style.color = "";
+          hint.style.borderColor = "";
+        }
+        hint.style.display = "block";
+        $("goalHint").style.display = "none";
+      } else {
+        G.laser.visible = false;
+        G.marker.visible = false;
+        G.tRing.visible = false;
+        const hint = $("actHint");
+        if (hint) hint.style.display = "none";
+        // "що робити" — динамічна підказка
+        const gh = $("goalHint");
+        let txt = null;
+        const myE = G.myEnergy || 0;
+        if (me.hp < 40) txt = "❤️ Тікай від аномалій і шлаку — HP низьке";
+        else if (G.portal && myE < 10) txt = "⚡ Набери енергію: висмоктуй вежі (ПКМ/💨) — потрібна для польоту";
+        else if (G.portal && me.y + 6 < G.portal.y) txt = "🏆 Вихід на " + Math.round(G.portal.y) + "м! Тримай ⬆ — лети; будуй вежі як трамплін (🫳)";
+        else if (G.portal) txt = "🏆 Вихід близько! Стрибай з повним зарядом ⚡ — і ти переміг";
+        else {
+          let anomNear = false;
+          for (const m of G.anoms.values()) {
+            if (Math.hypot(m.position.x - me.x, m.position.z - me.z) < 12) { anomNear = true; break; }
+          }
+          if (anomNear) txt = "👾 Аномалія поруч! Тримай 🫳 на ній — знищиш і отримаєш XP";
+          else txt = "🫳 Тримай кнопку на клітинці — будуєш вежу. Q — режим ⚔️ (руйнування дає ⚡)";
+        }
+        gh.textContent = txt;
+        gh.style.display = "block";
+      }
     }
   }
 
-  // tracers fade (0.45s lifetime, smooth opacity)
+  // remote players: intent beams + mode rings (читаємо поведінку один одного)
+  for (const p of G.players.values()) {
+    if (p.isMe || !p.mesh) continue;
+    const m = p.mesh;
+    p.ring.position.set(m.position.x, 0.06, m.position.z);
+    p.ring.material.color.setHex(p.mode ? 0xff5c5c : 0x2fd86b);
+    p.ring.visible = p.alive;
+    if (p.alive && (p.act || p.ext)) {
+      const tg = groundTargetFor(p);
+      p.beam.visible = true;
+      const pos = p.beam.geometry.attributes.position;
+      pos.setXYZ(0, p.x, p.y + EYE, p.z);
+      pos.setXYZ(1, tg.tx, 0.05, tg.tz);
+      pos.needsUpdate = true;
+      p.beam.material.color.setHex(p.ext ? 0xffb84d : (p.mode ? 0xff5c5c : 0x2fd86b));
+      p.beam.material.opacity = 0.45;
+    } else {
+      p.beam.visible = false;
+    }
+  }
+
+  // fx
   for (let i = G.tracers.length - 1; i >= 0; i--) {
     const tr = G.tracers[i];
     tr.t += dt;
     if (tr.t > 0.45) { G.scene.remove(tr.line); G.tracers.splice(i, 1); }
-    else {
-      tr.line.material.opacity = 0.9 * (1 - tr.t / 0.45);
+    else tr.line.material.opacity = 0.9 * (1 - tr.t / 0.45);
+  }
+  for (const ring of G.rings) {
+    if (ring.t < ring.life) {
+      ring.t += dt;
+      const k = ring.t / ring.life;
+      const s = ring.max * k;
+      ring.mesh.scale.set(s, s, s);
+      ring.mesh.material.opacity = 0.85 * (1 - k);
+      if (ring.t >= ring.life) ring.mesh.visible = false;
     }
   }
+  stepParts(dt);
+  stepFloats(dt);
+  updatePortal(dt);
+  updateWinner(dt);
 
   G.renderer.render(G.scene, G.camera);
+}
+
+function updateWinner(dt) {
+  if (!G.winBeam) return;
+  const w = G.winner;
+  if (!w) {
+    G.winBeam.visible = false; G.winRing.visible = false;
+    return;
+  }
+  const p = G.players.get(w.id);
+  if (!p) { G.winBeam.visible = false; G.winRing.visible = false; return; }
+  const t = performance.now() / 1000;
+  const py = p.mesh ? p.mesh.position.y : p.y;
+  const px = p.mesh ? p.mesh.position.x : p.x;
+  const pz = p.mesh ? p.mesh.position.z : p.z;
+  G.winBeam.visible = true; G.winRing.visible = true;
+  const bh = 10 + Math.sin(t * 2.4) * 0.8;
+  G.winBeam.position.set(px, py + bh / 2, pz);
+  G.winBeam.scale.set(1, bh, 1);
+  G.winBeam.material.opacity = 0.28 + 0.14 * Math.sin(t * 3);
+  G.winRing.position.set(px, py + 0.06, pz);
+  G.winRing.scale.setScalar(1 + 0.25 * Math.sin(t * 2.2));
+  G.winRing.material.opacity = 0.5 + 0.3 * Math.sin(t * 2.2);
+}
+
+function updatePortal(dt) {
+  if (!G.portalBeam) return;
+  if (!G.portal) {
+    G.portalBeam.visible = false; G.portalCore.visible = false; G.portalRing.visible = false;
+    return;
+  }
+  const t = performance.now() / 1000;
+  const px = G.portal.x, pz = G.portal.z, py = G.portal.y;
+  G.portalBeam.visible = true; G.portalCore.visible = true; G.portalRing.visible = true;
+  const beamH = 7 + Math.sin(t * 1.8) * 0.6;
+  G.portalBeam.position.set(px, py + beamH / 2, pz);
+  G.portalBeam.scale.set(1, beamH, 1);
+  G.portalBeam.material.opacity = 0.22 + 0.12 * Math.sin(t * 2.6);
+  G.portalCore.position.set(px, py, pz);
+  G.portalCore.scale.setScalar(1 + 0.14 * Math.sin(t * 3.4));
+  G.portalCore.rotation.y = t * 1.5;
+  G.portalRing.position.set(px, 0.06, pz);
+  const rs = 1 + 0.18 * Math.sin(t * 2.2);
+  G.portalRing.scale.setScalar(rs);
+  G.portalRing.material.opacity = 0.4 + 0.25 * Math.sin(t * 2.2);
+}
+
+function groundYLocal(x, z) {
+  if (!G.grid) return 0;
+  // тільки клітинка під центром (див. коментар на сервері: бокс "втягує" на вежу)
+  const zz = G.grid[toCell(z) * GRID + toCell(x)];
+  return zz > 1 ? (zz - 1) * H_CELL : 0;
+}
+
+function collideCellsLocal(x, z, r, py) {
+  let nx = clamp(x, -ARENA + r, ARENA - r), nz = clamp(z, -ARENA + r, ARENA - r);
+  const c0x = toCell(nx - r), c1x = toCell(nx + r), c0z = toCell(nz - r), c1z = toCell(nz + r);
+  for (let cz = c0z; cz <= c1z; cz++) for (let cx = c0x; cx <= c1x; cx++) {
+    const zz = G.grid[cz * GRID + cx];
+    const hh = zz > 1 ? (zz - 1) * H_CELL : 0;
+    if (hh <= py + 0.35) continue;      // вище вершини — пролітаємо над вежею
+    const x0 = cellX(cx) - 1, x1 = cellX(cx) + 1, z0 = cellZ(cz) - 1, z1 = cellZ(cz) + 1;
+    if (nx > x0 - r && nx < x1 + r && nz > z0 - r && nz < z1 + r) {
+      const dl = nx - (x0 - r), dr = (x1 + r) - nx, dt = nz - (z0 - r), db = (z1 + r) - nz;
+      const m = Math.min(dl, dr, dt, db);
+      if (m === dl) nx = x0 - r; else if (m === dr) nx = x1 + r;
+      else if (m === dt) nz = z0 - r; else nz = z1 + r;
+    }
+  }
+  return { x: nx, z: nz };
+}
+
+function movePlayerLocal(p, dt) {
+  if (!p.alive) return;
+  const yaw = p.yaw;
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+  const rx = Math.cos(yaw), rz = -Math.sin(yaw);
+  p.vx += (fx * G.input.f + rx * G.input.s) * ACCEL * dt;
+  p.vz += (fz * G.input.f + rz * G.input.s) * ACCEL * dt;
+  const fr = 1 - Math.min(1, FRICTION * dt);
+  p.vx *= fr; p.vz *= fr;
+  p.x += p.vx * dt; p.z += p.vz * dt;
+  const col = collideCellsLocal(p.x, p.z, RADIUS, p.y);
+  p.x = col.x; p.z = col.z;
+  if (Math.abs(p.vx) < 0.05) p.vx = 0;
+  if (Math.abs(p.vz) < 0.05) p.vz = 0;
+  const gy = groundYLocal(p.x, p.z);
+  const grounded = p.y <= gy + 0.01 && p.vy <= 0.01;
+  if (grounded) {
+    p.y = gy; p.vy = 0; p.flying = false;
+    if (G.input.jump) {
+      if ((G.myEnergy || 0) > 0) { p.flying = true; }
+      else { p.vy = JUMP_V; }
+    }
+  }
+  if (p.flying) {
+    if (G.input.jump && (G.myEnergy || 0) > 0) {
+      p.vy = Math.min(p.vy + ASCEL * dt, ASCENT_V);
+      G.myEnergy = Math.max(0, (G.myEnergy || 0) - E_RATE * dt);
+      updateEnergyHUD();
+    } else p.flying = false;
+  } else {
+    p.vy -= GRAVITY * dt;
+  }
+  p.y += p.vy * dt;
+  const gy2 = groundYLocal(p.x, p.z);
+  if (p.y <= gy2 + 0.01 && p.vy <= 0.01) { p.y = gy2; p.vy = 0; p.flying = false; }
+}
+
+function updateEnergyHUD() {
+  const e = Math.round(G.myEnergy || 0);
+  const jc = $("jumpCharge");
+  if (!jc) return;
+  jc.textContent = "⚡" + e;
+  const cap = ENERGY_CAP || 100;
+  const pct = Math.max(0, Math.min(100, (G.myEnergy || 0) / cap * 100));
+  const jw = $("jumpWrap");
+  if (jw) jw.style.setProperty("--en", pct);
+  const jb = $("jumpBtn");
+  if (jb) {
+    jb.classList.toggle("empty", (G.myEnergy || 0) < 1);
+    jb.classList.toggle("low", (G.myEnergy || 0) >= 1 && (G.myEnergy || 0) < 25);
+  }
 }
 
 /* ============ status ============ */
@@ -878,17 +1901,14 @@ function genCode() {
 $("quickBtn").addEventListener("click", () => {
   G.myName = ($("nameInp").value || "Гравець").trim().slice(0, 14);
   const code = $("quickCode").textContent.trim();
-  $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = true;
-  setStatus("Шукаємо кімнату " + code + "...");
-  guestSetup(code, 1, true);
+  connectWS(code);
 });
 
 $("createBtn").addEventListener("click", () => {
   const name = ($("nameInp").value || "Гравець").trim().slice(0, 14);
   G.myName = name;
   const code = genCode();
-  $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = true;
-  hostSetup(code);
+  connectWS(code);
   const url = location.origin + location.pathname + "#room=" + code;
   $("linkBox").style.display = "block";
   $("copyBtn").style.display = "block";
@@ -940,8 +1960,7 @@ function legacyCopy(text, done) {
 function joinFromCode(code) {
   const name = ($("nameInp").value || "Гравець").trim().slice(0, 14);
   G.myName = name;
-  $("createBtn").disabled = $("joinBtn").disabled = $("quickBtn").disabled = true;
-  guestSetup(code, 1, true); // orHost: if room missing, become host
+  connectWS(code);
 }
 
 $("joinBtn").addEventListener("click", () => {
@@ -950,7 +1969,6 @@ $("joinBtn").addEventListener("click", () => {
   joinFromCode(code);
 });
 
-// auto-join from URL hash
 (function () {
   const m = location.hash.match(/room=([A-Za-z0-9]{5})/);
   if (m) {
@@ -963,6 +1981,7 @@ $("joinBtn").addEventListener("click", () => {
 /* ============ boot ============ */
 init3d();
 if (isTouchDevice()) bindTouch(); else bindDesktop();
+setMode(0);
 let rotateHintTimer = null;
 function updateRotateHint() {
   const el = $("hintRotate");
@@ -980,26 +1999,33 @@ window.addEventListener("orientationchange", () => setTimeout(updateRotateHint, 
 
 /* ============ test hooks ============ */
 window.__game = {
-  get players() { return [...G.players.values()].map((p) => ({ id: p.id, name: p.name, x: p.x, y: p.y, z: p.z, hp: p.hp, alive: p.alive, frags: p.frags })); },
-  get isHost() { return G.isHost; },
+  get players() { return [...G.players.values()].map((p) => ({ id: p.id, name: p.name, x: p.x, y: p.y, z: p.z, hp: p.hp, alive: p.alive, frags: p.frags, mode: p.mode, authX: p.authX, authZ: p.authZ, isMe: p.isMe, xp: p.xp, level: p.level })); },
+  get auth() { const me = G.myId ? G.players.get(G.myId) : null; return me ? { x: me.authX, z: me.authZ, y: me.authY } : null; },
   get myId() { return G.myId; },
-  // host-authoritative teleport of any player (host only, for tests)
-  teleport(id, x, z, yaw) {
-    if (!G.isHost) return "host-only";
-    const p = G.players.get(id);
-    if (!p) return "no-player";
-    p.x = x; p.z = z; p.y = 0; p.vx = p.vy = p.vz = 0;
-    if (typeof yaw === "number") p.yaw = yaw;
-    return "ok";
-  },
-  setInput(f, s, j, fire) { G.input.f = f; G.input.s = s; G.input.j = j; G.input.fire = fire; },
+  get connected() { return G.ws ? G.ws.readyState === 1 : false; },
+  get mode() { return G.input.mode; },
+  get energy() { return G.myEnergy; },
+  get portal() { return G.portal; },
+  get cfg() { return G.cfg; },
+  get isOwner() { return G.owner && G.owner === G.myId; },
+  get grid() { return G.grid ? Array.from(G.grid) : null; },
+  gridAt(cx, cz) { return G.grid ? G.grid[cz * GRID + cx] : -1; },
+  setCellClient(cx, cz, v) { if (G.grid) G.grid[cz * GRID + cx] = v; },
+  get agents() { return [...G.agents.keys()]; },
+  get anoms() { return [...G.anoms.keys()]; },
+  get stats() { return { syn: G.syn, dec: G.dec, wave: G.wave, goal: G.goal, entropy: G.entropy }; },
+  get rulesVisible() { return $("rules").classList.contains("open"); },
+  setMode(m) { setMode(m ? 1 : 0); },
+  actOn() { G.input.act = true; },
+  actOff() { G.input.act = false; },
+  extOn() { G.input.ext = true; },
+  extOff() { G.input.ext = false; },
+  setInput(f, s, j) { G.input.f = f; G.input.s = s; G.input.jump = j; },
   setYaw(y) { const me = G.myId ? G.players.get(G.myId) : null; if (me) me.yaw = y; },
   setPitch(p) { const me = G.myId ? G.players.get(G.myId) : null; if (me) me.pitch = p; },
-  fire() { G.input.fire = true; },
-  fireOff() { G.input.fire = false; },
+  fire() { G.input.act = true; },
+  fireOff() { G.input.act = false; },
   get status() { return $("status").textContent; },
-  get connected() { return G.isHost ? G.conns.size : (G.conn ? G.conn.open : false); },
-  get connCount() { return G.isHost ? G.conns.size : (G.conn && G.conn.open ? 1 : 0); },
 };
 </script>
 </body>
