@@ -316,6 +316,19 @@
     <div id="palCustom"></div>
     <div class="hint">Обери пресет або відредагуй кольори нижче — своя гама збережеться на цьому пристрої. Клітинки-атоми: ранг = елемент (H, C, N, O…).</div>
   </div>
+  <div class="box">
+    <h2>🔊 Звук</h2>
+    <div class="sub">Твоє особисте — зберігається на цьому пристрої</div>
+    <div class="row"><label>Звук</label>
+      <select id="snd_on">
+        <option value="1">Увімкнено</option>
+        <option value="0">Вимкнено</option>
+      </select>
+    </div>
+    <div class="row"><label>Музика</label><input type="range" id="snd_music" min="0" max="100" step="1" value="45"></div>
+    <div class="row"><label>Ефекти</label><input type="range" id="snd_sfx" min="0" max="100" step="1" value="70"></div>
+    <div class="hint">Зміни застосовуються одразу. Музика стартує після першого кліку/тапа — так вимагає браузер.</div>
+  </div>
 </div>
 <button class="btn green" id="layoutDone">✅ Готово</button>
 
@@ -328,6 +341,121 @@ const $ = (id) => document.getElementById(id);
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+/* ============ sound: SFX + music (WebAudio, no files) ============ */
+const SND_KEY = "rego_snd";
+function loadSnd() {
+  try { const s = localStorage.getItem(SND_KEY); if (s) return Object.assign({ on: true, music: 45, sfx: 70 }, JSON.parse(s)); } catch (e) {}
+  return { on: true, music: 45, sfx: 70 };
+}
+const SND = {
+  ctx: null, master: null, musicG: null, sfxG: null,
+  cfg: loadSnd(),
+  musicOn: false, musTimer: null, step: 0, nextT: 0,
+  ensure() {
+    if (this.ctx) { if (this.ctx.state === "suspended") this.ctx.resume(); return this.ctx; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try {
+      const ctx = new AC();
+      this.master = ctx.createGain(); this.master.connect(ctx.destination);
+      this.musicG = ctx.createGain(); this.musicG.connect(this.master);
+      this.sfxG = ctx.createGain(); this.sfxG.connect(this.master);
+      this.ctx = ctx; this.apply();
+      return ctx;
+    } catch (e) { return null; }
+  },
+  apply() {
+    if (!this.ctx) return;
+    this.master.gain.value = this.cfg.on ? 1 : 0;
+    this.musicG.gain.value = (this.cfg.music / 100) * 0.5;
+    this.sfxG.gain.value = (this.cfg.sfx / 100);
+  },
+  tone(f, t0, dur, type, vol, glideTo, dest) {
+    const ctx = this.ctx; if (!ctx) return;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || "sine"; o.frequency.setValueAtTime(Math.max(20, f), t0);
+    if (glideTo) o.frequency.exponentialRampToValueAtTime(Math.max(20, glideTo), t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.001, vol), t0 + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(dest || this.sfxG);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  },
+  noise(t0, dur, vol, freq, q) {
+    const ctx = this.ctx; if (!ctx) return;
+    const len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = freq || 800; f.Q.value = q || 1;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(Math.max(0.001, vol), t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(f); f.connect(g); g.connect(this.sfxG);
+    src.start(t0); src.stop(t0 + dur + 0.02);
+  },
+  play(name) {
+    const ctx = this.ensure();
+    if (!ctx || !this.cfg.on || this.cfg.sfx <= 0) return;
+    const t = ctx.currentTime + 0.01;
+    switch (name) {
+      case "ui": this.tone(1100, t, 0.04, "square", 0.06, 700); break;
+      case "shoot": this.tone(950, t, 0.09, "square", 0.22, 180); this.noise(t, 0.05, 0.08, 3000); break;
+      case "shootFar": this.tone(750, t, 0.06, "square", 0.05, 300); break;
+      case "hit": this.tone(1400, t, 0.05, "sine", 0.25, 900); break;
+      case "kill": this.tone(120, t, 0.35, "sawtooth", 0.3, 50); this.tone(659.25, t + 0.1, 0.12, "triangle", 0.22); this.tone(783.99, t + 0.2, 0.12, "triangle", 0.22); this.tone(1046.5, t + 0.3, 0.25, "triangle", 0.22); break;
+      case "boom": this.noise(t, 0.45, 0.5, 500); this.tone(90, t, 0.4, "sine", 0.5, 35); break;
+      case "synth": this.tone(523.25, t, 0.1, "triangle", 0.22); this.tone(783.99, t + 0.09, 0.2, "triangle", 0.22); break;
+      case "en": this.tone(1500, t, 0.04, "sine", 0.08, 1100); break;
+      case "jump": this.tone(280, t, 0.18, "sine", 0.1, 620); break;
+      case "wave": this.tone(440, t, 0.18, "square", 0.12, 440); this.tone(440, t + 0.24, 0.22, "square", 0.12, 415); break;
+      case "lvl": this.tone(523.25, t, 0.12, "triangle", 0.22); this.tone(659.25, t + 0.1, 0.12, "triangle", 0.22); this.tone(783.99, t + 0.2, 0.2, "triangle", 0.22); break;
+      case "epoch": this.tone(523.25, t, 0.1, "triangle", 0.2); this.tone(659.25, t + 0.09, 0.1, "triangle", 0.2); this.tone(783.99, t + 0.18, 0.1, "triangle", 0.2); this.tone(1046.5, t + 0.27, 0.3, "triangle", 0.2); break;
+      case "molupd": this.tone(660, t, 0.12, "triangle", 0.18); this.tone(880, t + 0.08, 0.15, "triangle", 0.18); break;
+      case "molunstable": this.tone(392, t, 0.14, "sawtooth", 0.14, 392); this.tone(415.3, t + 0.16, 0.2, "sawtooth", 0.14, 415.3); break;
+      case "mode": this.tone(600, t, 0.06, "square", 0.12, 900); break;
+      case "win": this.tone(523.25, t, 0.14, "triangle", 0.25); this.tone(659.25, t + 0.12, 0.14, "triangle", 0.25); this.tone(783.99, t + 0.24, 0.14, "triangle", 0.25); this.tone(1046.5, t + 0.36, 0.5, "triangle", 0.25); break;
+    }
+  },
+  /* music: мінімальний луп Am–F–C–G (96 BPM, lookahead scheduler) */
+  musStart() {
+    const ctx = this.ensure(); if (!ctx) return;
+    if (this.musTimer) return;
+    this.musicOn = true; this.step = 0; this.nextT = ctx.currentTime + 0.1;
+    this.musTimer = setInterval(() => this.musTick(), 50);
+  },
+  musStop() { if (this.musTimer) { clearInterval(this.musTimer); this.musTimer = null; } this.musicOn = false; },
+  musTick() {
+    const ctx = this.ctx; if (!ctx || !this.musicOn) return;
+    const BEAT = 0.625;
+    const prog = [
+      { bass: 110, ch: [220, 261.63, 329.63] },
+      { bass: 87.31, ch: [174.61, 220, 261.63] },
+      { bass: 130.81, ch: [261.63, 329.63, 392] },
+      { bass: 98, ch: [196, 246.94, 293.66] }
+    ];
+    const ARP = [220, 261.63, 293.66, 329.63, 392, 440, 523.25, 587.33, 659.25];
+    while (this.nextT < ctx.currentTime + 0.2) {
+      const bar = Math.floor(this.step / 4) % 4;
+      const b = this.step % 4;
+      const t0 = this.nextT;
+      const P = prog[bar];
+      const mg = this.musicG;
+      if (b === 0) { this.tone(P.bass, t0, 0.4, "sine", 0.3, undefined, mg); this.tone(P.bass / 2, t0, 0.4, "sine", 0.22, undefined, mg); }
+      if (b === 2) this.tone(P.bass * 1.5, t0, 0.3, "sine", 0.18, undefined, mg);
+      if (b === 0 && (Math.floor(this.step / 8) % 2 === 0)) P.ch.forEach(f => this.tone(f, t0, 1.7, "triangle", 0.045, undefined, mg));
+      if (b !== 0 || Math.random() < 0.6) {
+        const f = ARP[Math.floor(Math.random() * ARP.length)];
+        this.tone(f, t0, 0.22, "triangle", 0.06, undefined, mg);
+      }
+      this.step++; this.nextT += BEAT;
+    }
+  }
+};
+function saveSnd() { try { localStorage.setItem(SND_KEY, JSON.stringify(SND.cfg)); } catch (e) {} }
+function syncSndUI() { $("snd_on").value = SND.cfg.on ? "1" : "0"; $("snd_music").value = SND.cfg.music; $("snd_sfx").value = SND.cfg.sfx; }
 
 /* ============ world constants (mirror server) ============ */
 const GRAVITY = 22, JUMP_V = 8.5, SPEED = 8, ACCEL = 45, FRICTION = 9, RADIUS = 0.5;
@@ -715,40 +843,50 @@ function handleMsg(d) {
     if (p) { G.players.delete(d.id); removeMesh(p); }
   } else if (d.t === "shot") {
     spawnTracer(d.sx, d.sy, d.sz, d.x1, d.y1, d.z1, d.mode === 1 ? 0xff5c5c : 0x2fd86b);
-    if (d.hitId && d.shooterId === G.myId) showHitmark();
+    if (d.shooterId === G.myId) SND.play("shoot"); else SND.play("shootFar");
+    if (d.hitId && d.shooterId === G.myId) { showHitmark(); SND.play("hit"); }
   } else if (d.t === "kill") {
     kfAdd(d.killer + " 💀 " + d.victim);
+    SND.play("kill");
   } else if (d.t === "mode") {
     toast((d.mode ? "⚔️ " : "🕊 ") + d.name + (d.mode ? " увімкнув війну!" : " повернувся в мир"));
     kfAdd((d.mode ? "⚔️ " : "🕊 ") + d.name + (d.mode ? " увімкнув війну" : " тепер у мирі"));
   } else if (d.t === "wave") {
     toast("⚠️ +" + d.n + " аномалій тиснуть на сполуки!");
     kfAdd("⚠️ +" + d.n + " аномалій (1 на 10 молекул)");
+    SND.play("wave");
   } else if (d.t === "boom") {
     fxBoom(cellX(d.x), cellZ(d.y), d.r, d.kind);
     toast(d.kind === "slag" ? "💥 Шлак вибухнув!" : d.kind === "anom" ? "💥 Аномалію знищено!" : d.kind === "mol" ? "💥 Нестабільна молекула вибухнула!" : "💥 Наднова!");
+    SND.play("boom");
   } else if (d.t === "boommsg") {
     toast("💥 Нестабільна молекула вибухнула!");
     kfAdd("💥 Вибух молекули");
+    SND.play("boom");
   } else if (d.t === "molupd") {
     toast("⚛ Молекула змінилась: " + (d.name || "сполука"));
     kfAdd("⚛ Молекула → " + (d.name || ""));
+    SND.play("molupd");
   } else if (d.t === "molunstable") {
     toast("⚠️ Молекула нестабільна — розіб'ється!");
+    SND.play("molunstable");
   } else if (d.t === "synth") {
     fxSynth(cellX(d.x), cellZ(d.y), d.rank);
     toast("⚛ Синтез: " + (RANK_NAMES[d.rank] || "") + " Z" + d.rank + "!");
+    SND.play("synth");
   } else if (d.t === "xp") {
     addFloat((d.dxp > 0 ? "+" : "") + d.dxp + " " + (d.why || ""), d.dxp > 0 ? "#7ef0a0" : "#ff6b6b", cellX(d.wx), cellZ(d.wz));
   } else if (d.t === "lvl") {
     kfAdd("⬆️ " + d.name + " — рівень " + d.level + "!");
-    if (d.id === G.myId) { toast("⬆️ Ти досяг рівня " + d.level + "! Вплив сильніший"); fxRingAt(cellX(0), cellZ(0), 8, 0xffd166); }
+    if (d.id === G.myId) { toast("⬆️ Ти досяг рівня " + d.level + "! Вплив сильніший"); fxRingAt(cellX(0), cellZ(0), 8, 0xffd166); SND.play("lvl"); }
   } else if (d.t === "epoch") {
     toast("🎯 Епоха: досягнуто Z" + d.rank + " " + (d.name || "") + "!");
     kfAdd("🎯 Світ увійшов в епоху Z" + d.rank + " " + (d.name || ""));
     fxRingAt(cellX(d.rank), cellZ(d.rank), 12, 0xffd166);
+    SND.play("epoch");
   } else if (d.t === "en") {
     addFloat((d.de > 0 ? "+" : "") + d.de + " " + (d.why || "⚡"), d.de > 0 ? "#4ec9ff" : "#9fb2d8", cellX(d.wx), cellZ(d.wz));
+    SND.play("en");
   } else if (d.t === "win") {
     kfAdd("🏆 " + d.name + " ДОСЯГ ВИХОДУ!");
     toast("🏆 " + d.name + " досяг виходу! Новий раунд за 6с…");
@@ -796,22 +934,7 @@ function spawnConfetti() {
 }
 
 function winSound() {
-  try {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    const ctx = new AC();
-    const notes = [523.25, 659.25, 783.99, 1046.5];
-    notes.forEach((f, i) => {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = "triangle"; o.frequency.value = f;
-      g.gain.setValueAtTime(0.0001, ctx.currentTime + i * 0.12);
-      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + i * 0.12 + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.12 + 0.55);
-      o.connect(g); g.connect(ctx.destination);
-      o.start(ctx.currentTime + i * 0.12); o.stop(ctx.currentTime + i * 0.12 + 0.6);
-    });
-    setTimeout(() => ctx.close(), 2500);
-  } catch (e) {}
+  SND.play("win");
 }
 
 function updateWorldMeta(d) {
@@ -1260,7 +1383,7 @@ function setMode(m) {
   if (G.marker) G.marker.material.color.setHex(col);
   if (G.tRing) G.tRing.material.color.setHex(col);
 }
-function toggleMode() { if (document.body.classList.contains("editLayout")) return; setMode(1 - G.input.mode); }
+function toggleMode() { if (document.body.classList.contains("editLayout")) return; setMode(1 - G.input.mode); SND.play("mode"); }
 
 /* ============ rules ============ */
 function openRules() { $("rules").classList.add("open"); }
@@ -1270,7 +1393,7 @@ $("rulesBtn").addEventListener("click", openRules);
 $("helpBtn").addEventListener("click", openRules);
 
 /* ============ settings menu ============ */
-function openSettings() { syncSettingsUI(); syncLayoutUI(); syncPaletteUI(); $("settings").classList.add("open"); }
+function openSettings() { syncSettingsUI(); syncLayoutUI(); syncPaletteUI(); syncSndUI(); $("settings").classList.add("open"); }
 function closeSettings() { $("settings").classList.remove("open"); }
 
 function syncSettingsUI() {
@@ -1299,6 +1422,18 @@ $("cfgApply").addEventListener("click", () => {
     ascentV: get("cfg_ascentV"), gravityK: get("cfg_gravityK"), bots: get("cfg_bots") };
   G.ws.send(JSON.stringify(msg));
   toast("⚙️ Налаштування надіслано");
+});
+
+/* ============ sound settings UI ============ */
+$("snd_on").addEventListener("change", () => {
+  SND.cfg.on = $("snd_on").value === "1"; saveSnd(); SND.apply();
+  if (SND.cfg.on) SND.play("ui");
+});
+$("snd_music").addEventListener("input", () => {
+  SND.cfg.music = +$("snd_music").value; saveSnd(); SND.apply();
+});
+$("snd_sfx").addEventListener("input", () => {
+  SND.cfg.sfx = +$("snd_sfx").value; saveSnd(); SND.apply(); SND.play("ui");
 });
 
 /* ============ palette: color themes ============ */
@@ -1443,7 +1578,7 @@ function bindDesktop() {
   const keys = {};
   window.addEventListener("keydown", (e) => {
     keys[e.code] = true;
-    if (e.code === "Space") e.preventDefault();
+    if (e.code === "Space") { e.preventDefault(); if (!e.repeat) SND.play("jump"); }
     if (e.code === "KeyQ" && G.running) setMode(1 - G.input.mode);
   });
   window.addEventListener("keyup", (e) => { keys[e.code] = false; });
@@ -1467,7 +1602,7 @@ function bindDesktop() {
   const jb = $("jumpBtn");
   jb.addEventListener("mousedown", (e) => {
     if (document.body.classList.contains("editLayout")) return;
-    e.stopPropagation(); G.input.jump = true; jb.classList.add("active");
+    e.stopPropagation(); G.input.jump = true; jb.classList.add("active"); SND.play("jump");
   });
   window.addEventListener("mouseup", () => { G.input.jump = false; jb.classList.remove("active"); });
   G.renderer.domElement.addEventListener("click", () => {
@@ -1506,7 +1641,7 @@ function bindTouch() {
       const x = t.clientX, y = t.clientY;
       if (hitEl(actBtn, x, y)) { actTid = t.identifier; G.input.act = true; actBtn.classList.add("active"); continue; }
       if (hitEl(extBtn, x, y)) { extTid = t.identifier; G.input.ext = true; extBtn.classList.add("active"); continue; }
-      if (hitEl($("jumpBtn"), x, y)) { jumpTid = t.identifier; G.input.jump = true; $("jumpBtn").classList.add("active"); continue; }
+      if (hitEl($("jumpBtn"), x, y)) { jumpTid = t.identifier; G.input.jump = true; $("jumpBtn").classList.add("active"); SND.play("jump"); continue; }
       // тап по іншій HUD-кнопці (⚙️, ?, 🕊, .chip, .mcbtn) — НЕ чіпаємо, хай працює звичайний клік
       if (e.target && e.target.closest && e.target.closest("button, .chip, a, input, select, #playersBox, [onclick]")) return;
       if (joy.id === null && x < window.innerWidth * 0.45) {
@@ -2133,6 +2268,12 @@ function updateRotateHint() {
 updateRotateHint();
 window.addEventListener("resize", updateRotateHint);
 window.addEventListener("orientationchange", () => setTimeout(updateRotateHint, 300));
+
+// звук: ініціалізація за першою взаємодією (автоплей-політика браузера)
+const sndInitOnce = () => { SND.ensure(); if (SND.cfg.on && SND.cfg.music > 0) SND.musStart(); };
+window.addEventListener("mousedown", sndInitOnce, { once: true });
+window.addEventListener("touchstart", sndInitOnce, { once: true });
+window.addEventListener("keydown", sndInitOnce, { once: true });
 
 // лінк «📜 Правила в грі» з довідки: /#rulesOpen → відкрити правила
 if (location.hash === "#rulesOpen") {
