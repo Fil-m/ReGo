@@ -143,6 +143,12 @@
   #settings .btns { display:flex; gap:10px; margin-top:16px; }
   #settings .btn { flex:1; }
   #settings .lock { font-size:12px; color:#ffb84d; margin-bottom:10px; }
+  #settings select { background:#0d1420; border:1px solid #2a3448; border-radius:8px; color:#e8ecf4; padding:5px 8px; font-size:13px; max-width:180px; }
+  #palCustom { display:grid; grid-template-columns:1fr 1fr; gap:6px 14px; margin:2px 0 6px; }
+  #palCustom .ph { grid-column:1/-1; font-size:11px; color:#6b7689; margin:6px 0 0; }
+  #palCustom .prow { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+  #palCustom .prow label { font-size:11.5px; color:#c6cede; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #palCustom input[type=color] { width:56px; height:26px; padding:0; border:1px solid #2a3448; border-radius:6px; background:#0d1420; cursor:pointer; }
   #settingsBtn { position:absolute; top:14px; right:60px; width:38px; height:38px; border-radius:50%; background:rgba(20,26,38,0.8); border:1px solid #2a3448; color:#9fb2d8; font-size:17px; cursor:pointer; pointer-events:auto; z-index:40; }
   #hintTouch { position:absolute; top:14px; left:50%; transform:translateX(-50%); font-size:11px; color:#8a93a6; background:rgba(10,14,22,0.6); padding:3px 10px; border-radius:14px; white-space:nowrap; pointer-events:none; }
   @media (orientation:portrait) { #hintRotate { display:flex; } }
@@ -292,6 +298,22 @@
     <button class="btn" id="layEditBtn">✋ Пересунути кнопки</button>
     <div class="hint">Натисни — кнопки ⬆ / 🫳 / 💨 / 🕊 стануть перетягуваними. Потягни куди зручно — позиція збережеться сама.</div>
   </div>
+  <div class="box">
+    <h2>🎨 Кольорова гама</h2>
+    <div class="sub">Твоє особисте — зберігається на цьому пристрої</div>
+    <div class="row"><label>Пресет</label>
+      <select id="pal_preset">
+        <option value="standard">Стандарт</option>
+        <option value="greenYellow">Зеленожовтий</option>
+        <option value="bluePink">Синьорожевий</option>
+        <option value="ultramarine">Ультрамарин + золото</option>
+        <option value="fire">Вогонь</option>
+        <option value="custom">Своя</option>
+      </select>
+    </div>
+    <div id="palCustom"></div>
+    <div class="hint">Обери пресет або відредагуй кольори нижче — своя гама збережеться на цьому пристрої. Клітинки-атоми: ранг = елемент (H, C, N, O…).</div>
+  </div>
 </div>
 <button class="btn green" id="layoutDone">✅ Готово</button>
 
@@ -322,6 +344,64 @@ const PAL = [
   [0,0,0], [138,143,152], [122,106,85], [63,182,216], [63,224,138],
   [168,79,216], [255,233,168], [255,158,94], [179,136,255], [255,92,138], [255,255,255]
 ];
+// Пресети кольорової гами: cells[0..10] = пил+ранги, mol[1..4] = молекули.
+// ACTIVE_PAL завантажується з localStorage (rego_pal) — «своя» гама на пристрої.
+const PALETTES = {
+  standard: {
+    name: "Стандарт",
+    cells: [[0,0,0],[138,143,152],[122,106,85],[63,182,216],[63,224,138],[168,79,216],[255,233,168],[255,158,94],[179,136,255],[255,92,138],[255,255,255]],
+    mol: { 1:[78,201,255], 2:[200,205,215], 3:[126,240,160], 4:[255,209,102] }
+  },
+  greenYellow: {
+    name: "Зеленожовтий",
+    cells: [[0,0,0],[126,132,110],[200,220,60],[130,200,45],[80,170,35],[230,220,50],[255,240,130],[170,230,90],[245,200,70],[120,190,60],[250,255,200]],
+    mol: { 1:[190,255,110], 2:[150,215,80], 3:[110,190,50], 4:[240,235,90] }
+  },
+  bluePink: {
+    name: "Синьорожевий",
+    cells: [[0,0,0],[116,128,148],[255,125,185],[95,160,255],[155,95,255],[60,115,255],[255,185,225],[125,205,255],[225,140,255],[255,100,140],[230,240,255]],
+    mol: { 1:[120,200,255], 2:[190,195,225], 3:[205,145,255], 4:[255,165,195] }
+  },
+  ultramarine: {
+    name: "Ультрамарин + золото",
+    cells: [[0,0,0],[104,112,132],[255,205,90],[55,75,215],[95,60,205],[45,110,240],[255,225,150],[145,165,255],[205,175,255],[255,165,95],[240,245,255]],
+    mol: { 1:[100,150,255], 2:[185,195,235], 3:[165,135,255], 4:[255,210,115] }
+  },
+  fire: {
+    name: "Вогонь",
+    cells: [[0,0,0],[140,120,112],[255,140,60],[255,85,60],[225,55,40],[255,180,85],[255,225,165],[255,120,95],[240,95,120],[255,165,140],[255,240,225]],
+    mol: { 1:[255,175,100], 2:[225,155,125], 3:[255,115,90], 4:[255,205,125] }
+  }
+};
+const PALETTE_KEY = "rego_pal";
+function defaultPal() {
+  return { name: "standard", cells: PAL.map(a => a.slice()), mol: { 1:[78,201,255], 2:[200,205,215], 3:[126,240,160], 4:[255,209,102] } };
+}
+function loadPal() {
+  try {
+    const s = localStorage.getItem(PALETTE_KEY);
+    if (s) { const p = JSON.parse(s); if (p && p.cells && p.cells.length === 11 && p.mol) return p; }
+  } catch (e) {}
+  return defaultPal();
+}
+let ACTIVE_PAL = loadPal();
+function savePal() { try { localStorage.setItem(PALETTE_KEY, JSON.stringify(ACTIVE_PAL)); } catch (e) {} }
+function palRGBtoHex(c) { return "#" + c.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join(""); }
+function palHextoRGB(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+// перефарбувати все одразу: клітинки (форс через скидання дифу) + 3D-молекули
+function applyPal() {
+  if (G.prevGrid) G.prevGrid.fill(255);
+  updateCells();
+  for (const [id, m] of G.mols) {
+    if (!m.type) continue;
+    const mc = ACTIVE_PAL.mol[m.type] || [255, 255, 255];
+    const c = new THREE.Color(mc[0] / 255, mc[1] / 255, mc[2] / 255);
+    m.g.children[0].material.color.copy(c);
+    m.g.children[0].material.emissive.copy(c);
+    m.g.children[1].material.color.copy(c);
+    m.g.children[2].material.color.copy(c);
+  }
+}
 const RANK_NAMES = {1:"Пил",2:"Базальт",3:"Руда",4:"Кристал",5:"Шлак",6:"Ефір",7:"Лінза",8:"Брама",9:"Ядро",10:"Сингулярність"};
 const MOL_COLORS = { 1: [78,201,255], 2: [200,205,215], 3: [126,240,160], 4: [255,209,102] };   // H₂O / CO₂ / NH₃ / CH₄
 const MOL_NAMES_C = { 1: "Вода H₂O", 2: "Вуглекислий газ CO₂", 3: "Аміак NH₃", 4: "Метан CH₄" };
@@ -878,12 +958,12 @@ function updateCells() {
     dummy.rotation.set(0, 0, 0);
     dummy.updateMatrix();
     G.cells.setMatrixAt(i, dummy.matrix);
-    const base = PAL[z] || PAL[1];
+    const base = ACTIVE_PAL.cells[z] || ACTIVE_PAL.cells[1];
     const en = e[i] / 255;
     let r = base[0] * (1 - 0.45 * en), gg = base[1] * (1 - 0.45 * en), bb = base[2] * (1 - 0.45 * en);
     if (mi > 0) {
       // сполука зафіксована: колір речовини, світіння = сила зв'язку
-      const mc = MOL_COLORS[mi] || [255, 255, 255];
+      const mc = ACTIVE_PAL.mol[mi] || [255, 255, 255];
       const glow = 0.45 + 0.55 * (bi / 255);
       const pulse = 0.85 + 0.15 * Math.sin(now / 350 + i);
       r = mc[0] * glow * pulse; gg = mc[1] * glow * pulse; bb = mc[2] * glow * pulse;
@@ -986,7 +1066,7 @@ function updateMols(list) {
     m.g.visible = true;
     if (m.type !== a.type) {
       m.type = a.type;
-      const mc = MOL_COLORS[a.type] || [255, 255, 255];
+      const mc = ACTIVE_PAL.mol[a.type] || [255, 255, 255];
       const c = new THREE.Color(mc[0] / 255, mc[1] / 255, mc[2] / 255);
       m.g.children[0].material.color.copy(c);
       m.g.children[0].material.emissive.copy(c);
@@ -1174,7 +1254,7 @@ $("rulesBtn").addEventListener("click", openRules);
 $("helpBtn").addEventListener("click", openRules);
 
 /* ============ settings menu ============ */
-function openSettings() { syncSettingsUI(); syncLayoutUI(); $("settings").classList.add("open"); }
+function openSettings() { syncSettingsUI(); syncLayoutUI(); syncPaletteUI(); $("settings").classList.add("open"); }
 function closeSettings() { $("settings").classList.remove("open"); }
 
 function syncSettingsUI() {
@@ -1204,6 +1284,47 @@ $("cfgApply").addEventListener("click", () => {
   G.ws.send(JSON.stringify(msg));
   toast("⚙️ Налаштування надіслано");
 });
+
+/* ============ palette: color themes ============ */
+const PAL_NAMES_C = { 1:"Пил", 2:"H · Водень", 3:"C · Вуглець", 4:"N · Азот", 5:"O · Кисень", 6:"F · Флуор", 7:"Ne · Неон", 8:"Na · Натрій", 9:"Mg · Магній", 10:"Al · Алюміній" };
+function buildPaletteUI() {
+  const box = $("palCustom");
+  let h = '<div class="ph">Атоми (ранг = елемент):</div>';
+  for (let i = 1; i <= 10; i++) h += `<div class="prow"><label title="${PAL_NAMES_C[i]}">${PAL_NAMES_C[i]}</label><input type="color" data-i="${i}" data-kind="cell"></div>`;
+  h += '<div class="ph">Молекули:</div>';
+  for (let i = 1; i <= 4; i++) h += `<div class="prow"><label title="${MOL_NAMES_C[i]}">${MOL_NAMES_C[i]}</label><input type="color" data-i="${i}" data-kind="mol"></div>`;
+  box.innerHTML = h;
+  box.querySelectorAll("input[type=color]").forEach(inp => {
+    inp.addEventListener("input", () => {
+      ACTIVE_PAL.name = "custom";
+      const rgb = palHextoRGB(inp.value);
+      if (inp.dataset.kind === "mol") ACTIVE_PAL.mol[+inp.dataset.i] = rgb;
+      else ACTIVE_PAL.cells[+inp.dataset.i] = rgb;
+      savePal();
+      applyPal();
+      $("pal_preset").value = "custom";
+    });
+  });
+}
+function syncPaletteUI() {
+  const sel = $("pal_preset");
+  sel.value = PALETTES[ACTIVE_PAL.name] ? ACTIVE_PAL.name : "custom";
+  $("palCustom").querySelectorAll("input[type=color]").forEach(inp => {
+    const i = +inp.dataset.i;
+    inp.value = palRGBtoHex(inp.dataset.kind === "mol" ? (ACTIVE_PAL.mol[i] || [255,255,255]) : (ACTIVE_PAL.cells[i] || [0,0,0]));
+  });
+}
+$("pal_preset").addEventListener("change", () => {
+  const v = $("pal_preset").value;
+  const src = PALETTES[v];
+  if (!src) return;
+  ACTIVE_PAL = { name: v, cells: src.cells.map(a => a.slice()), mol: JSON.parse(JSON.stringify(src.mol)) };
+  savePal();
+  applyPal();
+  syncPaletteUI();
+});
+buildPaletteUI();
+syncPaletteUI();
 
 /* ============ layout: buttons & joystick ============ */
 const LAYOUT_KEY = "rego_layout";
