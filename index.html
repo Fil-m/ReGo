@@ -817,11 +817,23 @@ setInterval(() => {
     try { G.ws.send(JSON.stringify({ t: "ping", ts: performance.now() })); } catch (e) {}
   }
 }, 2000);
-// при поверненні з фону: якщо з'єднання мертве — перепідключитись
+// фон: музика не потрібна; при поверненні — відновити, а reload тільки якщо з'єднання реально мертве
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && G.myId) {
-    const dead = !G.ws || G.ws.readyState !== 1;
-    if (dead || G.wsGone) { G.wsGone = false; location.reload(); }
+  if (document.hidden) {
+    if (SND.musicOn) SND.musStop();
+    return;
+  }
+  if (!G.myId) return;
+  const rs = G.ws ? G.ws.readyState : -1;
+  if (rs === 1) {
+    if (SND.cfg.on && SND.cfg.music > 0 && !SND.musicOn) SND.musStart();
+    return;
+  }
+  if (rs === 0) return;                       // ще підключається — не чіпаємо
+  if (G.wsGone || rs === 3) {                 // з'єднання вмерло — перепідключитись
+    setStatus("З'єднання втрачено — повертаємось у гру...");
+    G.wsGone = false;
+    setTimeout(() => location.reload(), 600);
   }
 });
 
