@@ -2134,6 +2134,12 @@ updateRotateHint();
 window.addEventListener("resize", updateRotateHint);
 window.addEventListener("orientationchange", () => setTimeout(updateRotateHint, 300));
 
+// лінк «📜 Правила в грі» з довідки: /#rulesOpen → відкрити правила
+if (location.hash === "#rulesOpen") {
+  history.replaceState(null, "", location.pathname + location.search);
+  setTimeout(openRules, 300);
+}
+
 /* ============ test hooks ============ */
 window.__game = {
   get players() { return [...G.players.values()].map((p) => ({ id: p.id, name: p.name, x: p.x, y: p.y, z: p.z, hp: p.hp, alive: p.alive, frags: p.frags, mode: p.mode, authX: p.authX, authZ: p.authZ, isMe: p.isMe, xp: p.xp, level: p.level })); },
